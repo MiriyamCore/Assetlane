@@ -1,0 +1,5 @@
+{
+  "home": {
+    "sections": ["hero", "featured", "catalog", "about"]
+  }
+}

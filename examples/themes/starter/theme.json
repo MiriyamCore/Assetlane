@@ -1,0 +1,9 @@
+{
+  "id": "my-store-theme",
+  "title": "My Store Theme",
+  "description": "A custom zip theme for my AssetLane storefront.",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "stylesheet": "theme.css",
+  "previewImage": "preview.svg"
+}

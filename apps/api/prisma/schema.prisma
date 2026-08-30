@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ProductStatus {
+  draft
+  published
+  archived
+}
+
+enum PurchaseStatus {
+  pending
+  paid
+  refunded
+  expired
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String        @id @default(uuid())
+  title             String
+  slug              String        @unique
+  summary           String
+  description       String
+  tags              Json?
+  priceCents        Int
+  currency          String
+  status            ProductStatus @default(draft)
+  version           String?
+  changelog         String?
+  seoTitle          String?
+  metaDescription   String?
+  featuredImagePath String?
+  galleryImagePaths Json?
+  digitalFilePath   String?
+  digitalFileName   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  publishedAt       DateTime?
+  purchases         Purchase[]
+}
+
+model Purchase {
+  id                      String         @id @default(uuid())
+  productId               String
+  product                 Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerEmail           String
+  customerName            String?
+  amountCents             Int
+  currency                String
+  status                  PurchaseStatus @default(pending)
+  paymentProvider         String         @default("stripe")
+  externalCheckoutId      String         @unique
+  stripePaymentIntentId   String?
+  stripeChargeId          String?
+  bkashTrxId              String?
+  downloadToken           String         @unique
+  downloadExpiresAt       DateTime?
+  downloadCount           Int            @default(0)
+  downloadLimit           Int            @default(5)
+  purchasedAt             DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  downloadEvents          DownloadEvent[]
+}
+
+model DownloadEvent {
+  id           String   @id @default(uuid())
+  purchaseId   String
+  purchase     Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  ipAddress    String?
+  userAgent    String?
+  downloadedAt DateTime @default(now())
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

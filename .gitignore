@@ -1,0 +1,33 @@
+.DS_Store
+.env
+.env.local
+.env.*.local
+node_modules/
+apps/*/node_modules/
+dist/
+apps/*/dist/
+coverage/
+*.log
+npm-debug.log*
+
+# Local databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# Runtime uploads and generated theme packages
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/themes/installed/*
+!storage/themes/installed/.gitkeep
+storage/themes/uploads/*
+!storage/themes/uploads/.gitkeep
+
+# Temporary archives and local artifacts
+*.zip
+/tmp/
+
+# OS/editor noise
+.vscode/
+.idea/

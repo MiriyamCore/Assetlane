@@ -1,0 +1,9 @@
+{
+  "id": "midnight-journal",
+  "title": "Midnight Journal",
+  "description": "A moody editorial zip theme with cool contrast and soft panels.",
+  "version": "1.0.0",
+  "author": "AssetLane Example",
+  "stylesheet": "theme.css",
+  "previewImage": "preview.svg"
+}

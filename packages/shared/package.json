@@ -1,0 +1,14 @@
+{
+  "name": "@assetlane/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for the AssetLane monorepo.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "author": {
+    "name": "Miriyam Core",
+    "email": "hello@miriyamcore.com",
+    "url": "https://miriyamcore.com"
+  },
+  "homepage": "https://miriyamcore.com/assetlane"
+}

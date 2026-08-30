@@ -1,0 +1,30 @@
+{
+  "name": "assetlane",
+  "version": "1.0.0",
+  "description": "Digital commerce platform for selling downloadable products.",
+  "private": true,
+  "type": "commonjs",
+  "author": {
+    "name": "Miriyam Core",
+    "email": "hello@miriyamcore.com",
+    "url": "https://miriyamcore.com"
+  },
+  "homepage": "https://miriyamcore.com/assetlane",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "build": "npm run build --workspace=@assetlane/theme-sdk && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "seed": "npm run seed --workspace=apps/api",
+    "prisma:generate": "npm run prisma:generate --workspace=apps/api",
+    "prisma:push": "npm run prisma:push --workspace=apps/api",
+    "dev:reset": "bash scripts/dev-reset.sh",
+    "dev:reset:full": "bash scripts/dev-reset.sh --full"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

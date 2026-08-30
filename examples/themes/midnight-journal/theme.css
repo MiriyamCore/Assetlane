@@ -1,0 +1,48 @@
+.storefront-shell[data-store-theme='midnight-journal'] {
+  --theme-accent: #9cc9ff;
+  --theme-accent-2: #f7b267;
+  --bg: #0a0d14;
+  --bg-alt: #101520;
+  --panel: rgba(17, 24, 39, 0.88);
+  --panel-border: rgba(148, 163, 184, 0.16);
+  --panel-strong: rgba(148, 163, 184, 0.28);
+  --text: #edf2ff;
+  --text-dim: #a7b4d0;
+  --text-soft: #7f8ba8;
+  --danger: #ff9f9f;
+  --success: #9af0be;
+  --shadow: 0 28px 58px rgba(0, 0, 0, 0.45);
+  --radius-card: 28px;
+  --radius-button: 22px;
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .site-header {
+  background: rgba(8, 12, 20, 0.78);
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .canvas-page {
+  gap: 32px;
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .canvas-hero h1 {
+  font-family: Georgia, 'Iowan Old Style', serif;
+  letter-spacing: -0.02em;
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .canvas-product-list li,
+.storefront-shell[data-store-theme='midnight-journal'] .canvas-product-link {
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .canvas-checkout,
+.storefront-shell[data-store-theme='midnight-journal'] .download-panel,
+.storefront-shell[data-store-theme='midnight-journal'] .checkout-form {
+  border-radius: 28px;
+}
+
+.storefront-shell[data-store-theme='midnight-journal'] .primary-link {
+  box-shadow: var(--shadow);
+}

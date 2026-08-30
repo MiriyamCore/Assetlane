@@ -1,0 +1,57 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "AssetLane API — Express backend, payments, and file delivery.",
+  "type": "commonjs",
+  "license": "MIT",
+  "author": {
+    "name": "Miriyam Core",
+    "email": "hello@miriyamcore.com",
+    "url": "https://miriyamcore.com"
+  },
+  "homepage": "https://miriyamcore.com/assetlane",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "start": "ts-node src/index.ts",
+    "build": "npx prisma generate && tsc",
+    "seed": "ts-node prisma/seed.ts",
+    "prisma:generate": "npx prisma generate",
+    "prisma:push": "npx prisma db push",
+    "test": "echo \"No tests configured\""
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "dependencies": {
+    "@assetlane/theme-sdk": "1.0.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.3.0",
+    "nodemailer": "^8.0.11",
+    "prisma": "^7.10.0",
+    "stripe": "^22.6.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^25.9.5",
+    "@types/nodemailer": "^8.0.1",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
