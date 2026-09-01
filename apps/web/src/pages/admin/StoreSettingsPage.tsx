@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Download, LoaderCircle, Save, Trash2, Upload, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BODY_FONT_PRESETS, HEADING_FONT_PRESETS } from '@assetlane/theme-sdk';
 import { AnnouncementPreview } from '../../components/storefront/AnnouncementBar';
+import { WebhooksManager } from './WebhooksManager';
 import { buildEmbedScriptSnippet } from '../../lib/embed-snippet';
+import { apiFetch } from '../../lib/api';
+import { STORE_CURRENCIES, STORE_CURRENCY_LABELS, normalizeStoreCurrency } from '../../lib/currency';
 import { settingsFields } from '../../lib/product-form';
 import { getSettingsFieldMeta, settingsFieldHelp } from '../../lib/settings-fields';
 import { validateSettingsForm } from '../../lib/settings-validation';
@@ -25,7 +29,7 @@ type SettingsSectionId =
   | 'email';
 
 const settingsSections: { id: SettingsSectionId; label: string; description: string }[] = [
-  { id: 'branding', label: 'Branding', description: 'Logo, colors, and hero copy' },
+  { id: 'branding', label: 'Branding', description: 'Logo, colors, typography, and hero copy' },
   { id: 'themes', label: 'Themes', description: 'Install and activate storefront themes' },
   { id: 'store', label: 'Store', description: 'Name, mode, and support details' },
   { id: 'payments', label: 'Payments', description: 'Stripe, bKash, and checkout providers' },
@@ -60,8 +64,10 @@ export function StoreSettingsPage({
   onSaveBrandingAssets: (files: {
     logo: File | null;
     favicon: File | null;
+    heroImage: File | null;
     removeLogo: boolean;
     removeFavicon: boolean;
+    removeHeroImage: boolean;
   }) => Promise<void>;
   onSaved: (nextSettings: SettingsMap) => Promise<void>;
 }) {
@@ -73,9 +79,13 @@ export function StoreSettingsPage({
   const [busyThemeId, setBusyThemeId] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [removeFavicon, setRemoveFavicon] = useState(false);
+  const [removeHeroImage, setRemoveHeroImage] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('branding');
+  const [testEmailTo, setTestEmailTo] = useState('');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   useEffect(() => {
     setForm(settings);
@@ -136,17 +146,21 @@ export function StoreSettingsPage({
 
     try {
       await onSaved(form);
-      if (logoFile || faviconFile || removeLogo || removeFavicon) {
+      if (logoFile || faviconFile || heroImageFile || removeLogo || removeFavicon || removeHeroImage) {
         await onSaveBrandingAssets({
           favicon: faviconFile,
           logo: logoFile,
+          heroImage: heroImageFile,
           removeLogo,
           removeFavicon,
+          removeHeroImage,
         });
         setLogoFile(null);
         setFaviconFile(null);
+        setHeroImageFile(null);
         setRemoveLogo(false);
         setRemoveFavicon(false);
+        setRemoveHeroImage(false);
       }
       setSuccessMessage('Store settings saved.');
     } catch (saveError) {
@@ -230,6 +244,15 @@ export function StoreSettingsPage({
     'emptyCatalogMessage',
     'aboutTitle',
     'aboutBody',
+    'faqTitle',
+    'faqBody',
+    'trustTitle',
+    'trustBlock1Title',
+    'trustBlock1Body',
+    'trustBlock2Title',
+    'trustBlock2Body',
+    'trustBlock3Title',
+    'trustBlock3Body',
   ];
   const announcementFields = ['announcementText', 'announcementUrl'];
   const socialFields = ['socialWebsite', 'socialTwitter', 'socialInstagram', 'socialYoutube'];
@@ -251,6 +274,7 @@ export function StoreSettingsPage({
   const emailFields = ['smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom'];
   const brandingPreviewLogo = settings.logoPath ? `/branding-assets/${settings.logoPath}` : '';
   const brandingPreviewFavicon = settings.faviconPath ? `/branding-assets/${settings.faviconPath}` : '';
+  const brandingPreviewHero = settings.heroImagePath ? `/branding-assets/${settings.heroImagePath}` : '';
   const publishedProducts = products.filter((product) => product.status === 'published');
   const homepageMode = (form.homepageMode || 'hero-grid') as HomepageMode;
   const exampleProductSlug = publishedProducts[0]?.slug || 'your-product-slug';
@@ -262,6 +286,24 @@ export function StoreSettingsPage({
       setSuccessMessage('Embed snippet copied to clipboard.');
     } catch {
       setError('Unable to copy snippet. Select and copy the code manually.');
+    }
+  };
+
+  const sendTestEmail = async () => {
+    setSendingTestEmail(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const response = await apiFetch<{ message: string }>('/settings/test-email', {
+        method: 'POST',
+        body: JSON.stringify({ to: testEmailTo || form.supportEmail }),
+      });
+      setSuccessMessage(response.message);
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Unable to send test email.');
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -352,6 +394,47 @@ export function StoreSettingsPage({
                   ) : null}
                 </div>
               </div>
+
+              <div className="branding-upload-card branding-upload-card-wide">
+                <span className="branding-upload-label">Hero cover image</span>
+                {heroImageFile ? (
+                  <span className="theme-meta">{heroImageFile.name}</span>
+                ) : removeHeroImage ? (
+                  <span className="theme-meta">Hero image will be removed on save</span>
+                ) : brandingPreviewHero ? (
+                  <img className="branding-preview-hero" src={brandingPreviewHero} alt="Current hero cover" />
+                ) : (
+                  <span className="theme-meta">No hero cover uploaded yet</span>
+                )}
+                <input
+                  accept="image/*"
+                  className="sr-only"
+                  id="branding-hero-input"
+                  onChange={(event) => {
+                    setHeroImageFile(event.target.files?.[0] || null);
+                    setRemoveHeroImage(false);
+                  }}
+                  type="file"
+                />
+                <div className="button-stack">
+                  <label className="secondary-button" htmlFor="branding-hero-input">
+                    Upload hero cover
+                  </label>
+                  {brandingPreviewHero || heroImageFile ? (
+                    <button
+                      className="secondary-button danger-button"
+                      type="button"
+                      onClick={() => {
+                        setHeroImageFile(null);
+                        setRemoveHeroImage(true);
+                      }}
+                    >
+                      Remove hero cover
+                    </button>
+                  ) : null}
+                </div>
+                <small>Shown beside or behind the homepage hero. Recommended 1600×900 or wider.</small>
+              </div>
             </div>
 
             <div className="form-grid">
@@ -363,6 +446,37 @@ export function StoreSettingsPage({
             <div className="form-color-row">
               {renderSettingsField('brandPrimaryColor')}
               {renderSettingsField('brandSecondaryColor')}
+            </div>
+
+            <div className="form-grid">
+              <label>
+                Body font
+                <select
+                  value={form.bodyFontPreset || 'theme-default'}
+                  onChange={(event) => updateField('bodyFontPreset', event.target.value)}
+                >
+                  {BODY_FONT_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+                <small>{settingsFieldHelp.bodyFontPreset}</small>
+              </label>
+              <label>
+                Heading font
+                <select
+                  value={form.headingFontPreset || 'match-body'}
+                  onChange={(event) => updateField('headingFontPreset', event.target.value)}
+                >
+                  {HEADING_FONT_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+                <small>{settingsFieldHelp.headingFontPreset}</small>
+              </label>
             </div>
 
             <label className="settings-toggle">
@@ -485,7 +599,7 @@ export function StoreSettingsPage({
             <div className="settings-note-card">
               <strong>Payments</strong>
               <span>
-                Enable Stripe for international cards and bKash for Bangladesh. bKash products must be priced in BDT. Use sandbox credentials while testing.
+                Enable Stripe for international cards and bKash for Bangladesh. bKash is available when the store currency is BDT. Use sandbox credentials while testing.
               </span>
             </div>
             <div className="form-grid">
@@ -533,6 +647,7 @@ export function StoreSettingsPage({
                 Copy snippet
               </button>
             </div>
+            <WebhooksManager />
           </>
         );
 
@@ -612,10 +727,58 @@ export function StoreSettingsPage({
         return <div className="form-grid">{legalFields.map((fieldKey) => renderSettingsField(fieldKey))}</div>;
 
       case 'delivery':
-        return <div className="form-grid">{deliveryFields.map((fieldKey) => renderSettingsField(fieldKey))}</div>;
+        return (
+          <div className="form-grid">
+            {deliveryFields.map((fieldKey) => {
+              if (fieldKey === 'defaultCurrency') {
+                return (
+                  <label key={fieldKey}>
+                    {fieldLabel(fieldKey)}
+                    <select
+                      value={normalizeStoreCurrency(form.defaultCurrency)}
+                      onChange={(event) => updateField('defaultCurrency', event.target.value)}
+                    >
+                      {STORE_CURRENCIES.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {STORE_CURRENCY_LABELS[currency]}
+                        </option>
+                      ))}
+                    </select>
+                    {settingsFieldHelp.defaultCurrency ? <small>{settingsFieldHelp.defaultCurrency}</small> : null}
+                  </label>
+                );
+              }
+
+              return renderSettingsField(fieldKey);
+            })}
+          </div>
+        );
 
       case 'email':
-        return <div className="form-grid">{emailFields.map((fieldKey) => renderSettingsField(fieldKey))}</div>;
+        return (
+          <>
+            <div className="form-grid">{emailFields.map((fieldKey) => renderSettingsField(fieldKey))}</div>
+            <div className="settings-note-card">
+              <strong>Test SMTP delivery</strong>
+              <span>Save your SMTP settings first, then send a test message to confirm buyer emails will work.</span>
+              <div className="form-grid">
+                <label>
+                  Send test email to
+                  <input
+                    type="email"
+                    value={testEmailTo}
+                    onChange={(event) => setTestEmailTo(event.target.value)}
+                    placeholder={form.supportEmail || 'support@yourstore.com'}
+                  />
+                </label>
+              </div>
+              <button className="secondary-button" disabled={sendingTestEmail} type="button" onClick={() => void sendTestEmail()}>
+                {sendingTestEmail ? <LoaderCircle className="spin" size={16} /> : null}
+                <span>{sendingTestEmail ? 'Sending…' : 'Send test email'}</span>
+              </button>
+            </div>
+          </>
+        );
 
       default:
         return null;

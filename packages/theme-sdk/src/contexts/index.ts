@@ -13,10 +13,14 @@ import {
   getAnnouncement,
   getCatalogCopy,
   getEmptyCatalogCopy,
+  getFaqCopy,
   getHeroCopy,
   getSite,
+  getTrustCopy,
   hasAboutSection,
   hasAnnouncement,
+  hasFaqSection,
+  hasTrustSection,
 } from '../helpers/site';
 import { getHomeLayout, resolveFeaturedProduct, resolvePackageHomeLayout } from '../helpers/theme';
 
@@ -89,12 +93,16 @@ export const buildHomeContext = (input: {
     catalog: getCatalogCopy(input.settings),
     emptyCatalog: getEmptyCatalogCopy(input.settings),
     about: getAboutCopy(input.settings),
+    faq: getFaqCopy(input.settings),
+    trust: getTrustCopy(input.settings),
     announcement: getAnnouncement(input.settings),
     products: input.products,
     featuredProduct,
     layout,
     flags: {
       hasAbout: hasAboutSection(input.settings),
+      hasFaq: hasFaqSection(input.settings),
+      hasTrust: hasTrustSection(input.settings),
       hasAnnouncement: hasAnnouncement(input.settings),
       hasProducts: input.products.length > 0,
     },

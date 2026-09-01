@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { buildAllowedOrigins } from './cors-origins';
 import { getSettingsMap } from './settings';
 
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -18,7 +19,7 @@ export const createCorsMiddleware = () =>
           .map((value) => value.trim())
           .filter(Boolean);
 
-        const allowed = new Set([frontendUrl, ...embedOrigins]);
+        const allowed = new Set([...buildAllowedOrigins(frontendUrl), ...embedOrigins]);
 
         if (allowed.has(origin)) {
           callback(null, true);
@@ -28,7 +29,7 @@ export const createCorsMiddleware = () =>
         callback(new Error('Origin not allowed by CORS'));
       } catch (error) {
         console.error('cors origin check error', error);
-        callback(null, origin === frontendUrl);
+        callback(null, buildAllowedOrigins(frontendUrl).has(origin));
       }
     },
     credentials: true,

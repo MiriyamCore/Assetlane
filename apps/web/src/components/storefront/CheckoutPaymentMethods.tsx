@@ -3,6 +3,7 @@ import type { PaymentMethod } from '../../types/store';
 const labels: Record<PaymentMethod, string> = {
   stripe: 'Card (Stripe)',
   bkash: 'bKash',
+  free: 'Free',
 };
 
 type CheckoutPaymentMethodsProps = {

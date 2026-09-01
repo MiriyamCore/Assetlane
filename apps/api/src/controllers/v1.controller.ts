@@ -85,7 +85,7 @@ export const getV1ProductContext = async (req: Request, res: Response) => {
 
 export const createV1CheckoutSession = async (req: Request, res: Response) => {
   try {
-    const { productSlug, productId, customerEmail, customerName, successUrl, cancelUrl, paymentMethod } = req.body as {
+    const { productSlug, productId, customerEmail, customerName, successUrl, cancelUrl, paymentMethod, discountCode } = req.body as {
       productSlug?: string;
       productId?: string;
       customerEmail?: string;
@@ -93,6 +93,7 @@ export const createV1CheckoutSession = async (req: Request, res: Response) => {
       successUrl?: string;
       cancelUrl?: string;
       paymentMethod?: string;
+      discountCode?: string;
     };
 
     let resolvedProductId = productId;
@@ -134,6 +135,7 @@ export const createV1CheckoutSession = async (req: Request, res: Response) => {
       successUrl,
       cancelUrl,
       paymentMethod,
+      discountCode,
     });
 
     return res.json(session);

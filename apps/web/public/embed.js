@@ -13,9 +13,9 @@
 
   function formatMoney(cents, currency) {
     try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD' }).format(cents / 100);
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'BDT' }).format(cents / 100);
     } catch (_error) {
-      return (cents / 100).toFixed(2) + ' ' + (currency || 'USD');
+      return (cents / 100).toFixed(2) + ' ' + (currency || 'BDT');
     }
   }
 

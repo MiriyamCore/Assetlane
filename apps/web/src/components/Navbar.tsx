@@ -23,6 +23,7 @@ const Navbar = ({ storeName, logoUrl, showAdminLinks, themeBase = 'atelier' }: N
 
         <nav className="nav-links">
           <Link to="/">Storefront</Link>
+          <Link to="/library">My purchases</Link>
           {showAdminLinks || onAdminRoute ? (
             <>
               <Link to="/admin">

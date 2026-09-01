@@ -9,8 +9,9 @@ import {
 } from '@assetlane/theme-sdk/react';
 import { ErrorPanel, InlineError, SuccessPanel } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
+import { CheckoutExtras } from '../../components/storefront/CheckoutExtras';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
-import { API_ROOT } from '../../lib/api';
+import { DownloadFileList } from '../../components/storefront/DownloadFileList';
 import { formatMoney } from '../../lib/format';
 import type {
   CancelThemeProps,
@@ -21,8 +22,8 @@ import type {
   SuccessThemeProps,
 } from '../types';
 
-function CanvasHomePage({ loading, error }: StorefrontThemeProps) {
-  const { site, catalog, emptyCatalog, products, featuredProduct, about, flags, announcement } = useThemeHomeContext();
+function CanvasHomePage({ loading, error, settings }: StorefrontThemeProps) {
+  const { site, catalog, emptyCatalog, products, featuredProduct, about, faq, trust, flags, announcement } = useThemeHomeContext();
   const hero = useHeroCopy();
 
   return (
@@ -40,6 +41,11 @@ function CanvasHomePage({ loading, error }: StorefrontThemeProps) {
       ) : null}
 
       <header className="canvas-hero">
+        {settings.heroImageUrl ? (
+          <div className="canvas-hero-cover">
+            <img alt="" className="canvas-hero-cover-image" src={settings.heroImageUrl} />
+          </div>
+        ) : null}
         <p className="canvas-kicker">{site.name}</p>
         <h1>{hero.headline || site.description || site.name}</h1>
         {hero.subheadline ? <p className="canvas-lede">{hero.subheadline}</p> : null}
@@ -91,6 +97,27 @@ function CanvasHomePage({ loading, error }: StorefrontThemeProps) {
           <SafeMarkdown content={about.body} />
         </section>
       ) : null}
+
+      {flags.hasFaq ? (
+        <section className="canvas-block">
+          <h2>{faq.title}</h2>
+          <SafeMarkdown content={faq.body} />
+        </section>
+      ) : null}
+
+      {flags.hasTrust ? (
+        <section className="canvas-block">
+          <h2>{trust.title}</h2>
+          <ul className="canvas-trust-list">
+            {trust.blocks.map((block, index) => (
+              <li key={`${block.title}-${index}`}>
+                {block.title ? <strong>{block.title}</strong> : null}
+                {block.body ? <span>{block.body}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -106,6 +133,7 @@ function CanvasProductPage({
   onCustomerEmailChange,
   onCustomerNameChange,
   onCheckout,
+  checkoutExtras,
 }: ProductThemeProps) {
   const product = useProduct();
   const site = useProductSite();
@@ -127,8 +155,11 @@ function CanvasProductPage({
       </section>
 
       <aside className="canvas-checkout">
+        {checkoutExtras ? <CheckoutExtras {...checkoutExtras} /> : null}
         <form className="checkout-form" onSubmit={onCheckout}>
-          <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
+          {paymentMethods.length > 0 ? (
+            <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
+          ) : null}
           <label>
             Name
             <input value={customerName} onChange={(event) => onCustomerNameChange(event.target.value)} placeholder="Optional" />
@@ -139,7 +170,15 @@ function CanvasProductPage({
           </label>
           <button className="primary-button" disabled={submitting} type="submit">
             {submitting ? <Download className="spin" size={16} /> : <CreditCard size={16} />}
-            <span>{submitting ? 'Redirecting' : 'Checkout'}</span>
+            <span>
+              {submitting
+                ? checkoutExtras?.isFreeProduct || checkoutExtras?.finalPriceCents === 0
+                  ? 'Processing'
+                  : 'Redirecting'
+                : checkoutExtras?.isFreeProduct || checkoutExtras?.finalPriceCents === 0
+                  ? 'Get free download'
+                  : 'Checkout'}
+            </span>
           </button>
         </form>
         {error ? <InlineError message={error} /> : null}
@@ -152,13 +191,24 @@ function CanvasProductPage({
   );
 }
 
-function CanvasSuccessPage({ settings, orderReference }: SuccessThemeProps) {
+function CanvasSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
+  const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
+  const pending = receiptLoading || receipt?.status === 'pending';
+
   return (
     <div className="canvas-page">
       <SuccessPanel
         title="Payment completed"
-        message={`Your purchase was captured successfully. We’ll email a secure download link from ${settings.supportEmail}.`}
+        message={
+          downloadUrl
+            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also emailed a secure download link from ${settings.supportEmail}.`
+            : pending
+              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
+              : `Your purchase was captured successfully. We'll email a secure download link from ${settings.supportEmail}.`
+        }
         {...(orderReference ? { detail: `Order reference: ${orderReference}` } : {})}
+        {...(downloadUrl ? { downloadUrl } : {})}
+        {...(pending ? { pending } : {})}
       />
     </div>
   );
@@ -186,15 +236,7 @@ function CanvasDownloadPage({ payload, token }: DownloadThemeProps) {
   return (
     <div className="canvas-page">
       <h1>{payload.productTitle}</h1>
-      <p>{payload.fileName || 'Private digital file'}</p>
-      {payload.canDownload ? (
-        <a className="primary-link" href={`${API_ROOT}/downloads/${token}/file`}>
-          <Download size={18} />
-          <span>Download file</span>
-        </a>
-      ) : (
-        <InlineError message="This download link is not currently available." />
-      )}
+      {payload.canDownload ? <DownloadFileList payload={payload} token={token} /> : <InlineError message="This download link is not currently available." />}
     </div>
   );
 }

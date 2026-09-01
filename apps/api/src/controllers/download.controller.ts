@@ -3,6 +3,7 @@ import path from 'path';
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { getSettingsMap, toIntSetting } from '../lib/settings';
+import { listProductDownloadFiles, resolveProductFilePath } from '../lib/product-files';
 import { getAbsoluteStoragePath } from '../lib/storage';
 
 const loadPurchaseForDownload = async (token: string) =>
@@ -15,6 +16,15 @@ const loadPurchaseForDownload = async (token: string) =>
           title: true,
           digitalFileName: true,
           digitalFilePath: true,
+          files: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              filePath: true,
+              fileName: true,
+              sortOrder: true,
+            },
+          },
         },
       },
     },
@@ -50,10 +60,12 @@ export const getDownloadInfo = async (req: Request, res: Response) => {
 
     const { purchase, effectiveLimit, isExpired, isLimitReached } = state;
     const canDownload = purchase.status === 'paid' && !isExpired && !isLimitReached;
+    const files = listProductDownloadFiles(purchase.product);
 
     return res.json({
       productTitle: purchase.product.title,
-      fileName: purchase.product.digitalFileName,
+      fileName: files[0]?.fileName || purchase.product.digitalFileName,
+      files,
       customerEmail: purchase.customerEmail,
       status: purchase.status,
       downloadCount: purchase.downloadCount,
@@ -90,11 +102,14 @@ export const downloadProduct = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'This purchase has reached its download limit.' });
     }
 
-    if (!purchase.product.digitalFilePath || !purchase.product.digitalFileName) {
+    const fileId = String(req.params.fileId || 'primary');
+    const resolvedFile = resolveProductFilePath(purchase.product, fileId);
+
+    if (!resolvedFile) {
       return res.status(404).json({ message: 'The digital file is missing.' });
     }
 
-    const absolutePath = getAbsoluteStoragePath(purchase.product.digitalFilePath);
+    const absolutePath = getAbsoluteStoragePath(resolvedFile.filePath);
     if (!fs.existsSync(absolutePath)) {
       return res.status(404).json({ message: 'The digital file is missing from storage.' });
     }
@@ -113,7 +128,7 @@ export const downloadProduct = async (req: Request, res: Response) => {
       }),
     ]);
 
-    return res.download(absolutePath, purchase.product.digitalFileName);
+    return res.download(absolutePath, resolvedFile.fileName);
   } catch (error) {
     console.error('downloadProduct error', error);
     return res.status(500).json({ message: 'Unable to stream the download.' });

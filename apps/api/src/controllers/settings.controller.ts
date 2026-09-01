@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
+import { normalizeStoreCurrency, isStoreCurrency } from '../lib/currency';
+import prisma from '../lib/prisma';
 import { getSettingsMap, upsertSettings } from '../lib/settings';
 import { getThemeById, listAvailableThemes } from '../lib/themes';
 import { sanitizeFilename } from '../lib/storage';
+import { sendTestEmail } from '../services/email.service';
 
 const publicSettingKeys = [
   'storeName',
@@ -17,8 +20,11 @@ const publicSettingKeys = [
   'privacyUrl',
   'logoPath',
   'faviconPath',
+  'heroImagePath',
   'brandPrimaryColor',
   'brandSecondaryColor',
+  'bodyFontPreset',
+  'headingFontPreset',
   'heroHeadline',
   'heroSubheadline',
   'primaryCtaLabel',
@@ -33,6 +39,15 @@ const publicSettingKeys = [
   'emptyCatalogMessage',
   'aboutTitle',
   'aboutBody',
+  'faqTitle',
+  'faqBody',
+  'trustTitle',
+  'trustBlock1Title',
+  'trustBlock1Body',
+  'trustBlock2Title',
+  'trustBlock2Body',
+  'trustBlock3Title',
+  'trustBlock3Body',
   'announcementText',
   'announcementUrl',
   'socialWebsite',
@@ -60,6 +75,7 @@ export const getPublicSettings = async (_req: Request, res: Response) => {
       storefrontThemePackageLayout: activeTheme.packageLayout ? JSON.stringify(activeTheme.packageLayout) : '',
       logoUrl: toPublicAssetUrl(settings.logoPath, 'branding-assets'),
       faviconUrl: toPublicAssetUrl(settings.faviconPath, 'branding-assets'),
+      heroImageUrl: toPublicAssetUrl(settings.heroImagePath, 'branding-assets'),
     };
     return res.json(response);
   } catch (error) {
@@ -96,7 +112,27 @@ export const updateSettings = async (req: Request, res: Response) => {
         .map(([key, value]) => [key, String(value)])
     );
 
+    if (entries.defaultCurrency && !isStoreCurrency(entries.defaultCurrency)) {
+      return res.status(400).json({ message: 'Store currency must be one of BDT, USD, EUR, or GBP.' });
+    }
+
+    const currentSettings = await getSettingsMap();
+    const nextCurrency = entries.defaultCurrency
+      ? normalizeStoreCurrency(entries.defaultCurrency)
+      : normalizeStoreCurrency(currentSettings.defaultCurrency);
+
+    if (entries.defaultCurrency) {
+      entries.defaultCurrency = nextCurrency;
+    }
+
     const settings = await upsertSettings(entries);
+
+    if (entries.defaultCurrency && nextCurrency !== normalizeStoreCurrency(currentSettings.defaultCurrency)) {
+      await prisma.product.updateMany({
+        data: { currency: nextCurrency },
+      });
+    }
+
     return res.json(settings);
   } catch (error) {
     console.error('updateSettings error', error);
@@ -109,6 +145,7 @@ export const updateBrandingAssets = async (req: Request, res: Response) => {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
     const logoFile = files?.logo?.[0] ?? null;
     const faviconFile = files?.favicon?.[0] ?? null;
+    const heroImageFile = files?.heroImage?.[0] ?? null;
     const body = req.body as Record<string, string | undefined>;
 
     const entries: Record<string, string> = {};
@@ -121,6 +158,10 @@ export const updateBrandingAssets = async (req: Request, res: Response) => {
       entries.faviconPath = '';
     }
 
+    if (body.removeHeroImage === 'true') {
+      entries.heroImagePath = '';
+    }
+
     if (logoFile) {
       entries.logoPath = sanitizeFilename(logoFile.filename);
     }
@@ -129,10 +170,32 @@ export const updateBrandingAssets = async (req: Request, res: Response) => {
       entries.faviconPath = sanitizeFilename(faviconFile.filename);
     }
 
+    if (heroImageFile) {
+      entries.heroImagePath = sanitizeFilename(heroImageFile.filename);
+    }
+
     const settings = await upsertSettings(entries);
     return res.json(settings);
   } catch (error) {
     console.error('updateBrandingAssets error', error);
     return res.status(500).json({ message: 'Unable to save branding assets.' });
+  }
+};
+
+export const postTestEmail = async (req: Request, res: Response) => {
+  try {
+    const settings = await getSettingsMap();
+    const to = String((req.body as { to?: string }).to || settings.supportEmail || '').trim();
+
+    if (!to) {
+      return res.status(400).json({ message: 'A recipient email address is required.' });
+    }
+
+    await sendTestEmail(to);
+    return res.json({ success: true, message: `Test email sent to ${to}.` });
+  } catch (error) {
+    console.error('postTestEmail error', error);
+    const message = error instanceof Error ? error.message : 'Unable to send test email.';
+    return res.status(400).json({ message });
   }
 };

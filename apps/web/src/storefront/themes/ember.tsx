@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { CreditCard, Download, Flame, Shield, Sparkles, Tag, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useHeroCopy, useHomeLayout } from '@assetlane/theme-sdk/react';
-import { AboutSection } from '../../components/storefront/AboutSection';
+import { HomeContentSections } from '../../components/storefront/HomeContentSections';
+import { HeroCoverImage } from '../../components/storefront/HeroCoverImage';
 import { CatalogSection } from '../../components/storefront/CatalogSection';
 import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedProductSpotlight';
 import { InlineError } from '../../components/ui/States';
@@ -67,6 +68,7 @@ function EmberHomePage({ products, featuredProduct, loading, error, settings }: 
             </div>
           </div>
         ) : null}
+        <HeroCoverImage settings={settings} className="hero-cover hero-cover-ember" />
       </section>
       {layout.showFeaturedFirst && featuredProduct ? (
         <FeaturedProductSpotlight
@@ -78,7 +80,7 @@ function EmberHomePage({ products, featuredProduct, loading, error, settings }: 
         />
       ) : null}
       {!layout.showCatalogFirst ? productSection : null}
-      <AboutSection settings={settings} />
+      <HomeContentSections settings={settings} />
     </div>
   );
 }
@@ -190,13 +192,22 @@ function EmberProductPage({
   );
 }
 
-function EmberSuccessPage({ settings, orderReference }: SuccessThemeProps) {
+function EmberSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
+  const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
+  const pending = receiptLoading || receipt?.status === 'pending';
+
   return (
     <div className="container narrow-shell">
       <section className="download-panel download-panel-ember">
         <span className="eyebrow">Order confirmed</span>
-        <h1>Your purchase is secured.</h1>
-        <p>We’re sending the download link from {settings.supportEmail}. Keep the confirmation email for access and support.</p>
+        <h1>{downloadUrl ? 'Your download is ready.' : pending ? 'Confirming payment…' : 'Your purchase is secured.'}</h1>
+        <p>
+          {downloadUrl
+            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also sent a secure link from ${settings.supportEmail}.`
+            : pending
+              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
+              : `We're sending the download link from ${settings.supportEmail}. Keep the confirmation email for access and support.`}
+        </p>
         <div className="paper-stat-row">
           <div>
             <strong>Store</strong>
@@ -209,6 +220,11 @@ function EmberSuccessPage({ settings, orderReference }: SuccessThemeProps) {
             </div>
           ) : null}
         </div>
+        {downloadUrl ? (
+          <a className="primary-link" href={downloadUrl}>
+            Open secure download
+          </a>
+        ) : null}
       </section>
     </div>
   );

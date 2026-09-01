@@ -1,4 +1,5 @@
 import type { SettingsMap } from '../types/store';
+import { isStoreCurrency } from './currency';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,6 +53,10 @@ export const validateSettingsForm = (form: SettingsMap): string[] => {
 
   if (!isValidPositiveInteger(form.downloadLimit || '')) {
     errors.push('Download limit must be a positive number.');
+  }
+
+  if (form.defaultCurrency && !isStoreCurrency(form.defaultCurrency)) {
+    errors.push('Store currency must be one of BDT, USD, EUR, or GBP.');
   }
 
   for (const [label, value] of [

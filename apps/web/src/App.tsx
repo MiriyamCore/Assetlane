@@ -11,6 +11,7 @@ import { AdminWorkspace } from './pages/admin/AdminWorkspace';
 import { CancelPage } from './pages/public/CancelPage';
 import { DownloadPage } from './pages/public/DownloadPage';
 import { HomePage } from './pages/public/HomePage';
+import { LibraryPage } from './pages/public/LibraryPage';
 import { ProductPage } from './pages/public/ProductPage';
 import { SuccessPage } from './pages/public/SuccessPage';
 import { SetupWizardPage } from './pages/setup/SetupWizardPage';
@@ -67,6 +68,7 @@ function AppRoutes({ settings, onSettingsSaved }: { settings: PublicSettings; on
           }
         />
         <Route path="/cancel" element={<CancelPage productSlug={searchParams.get('product')} settings={settings} />} />
+        <Route path="/library" element={<LibraryPage settings={settings} />} />
         <Route path="/download/:token" element={<DownloadRoute settings={settings} />} />
       </Route>
 

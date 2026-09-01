@@ -1,5 +1,6 @@
 import { getStripeClient } from './stripe';
 import { isBkashConfigured } from './bkash';
+import { normalizeStoreCurrency } from './currency';
 import { getSettingsMap } from './settings';
 
 export type PaymentMethod = 'stripe' | 'bkash';
@@ -14,11 +15,13 @@ export const getEnabledPaymentMethods = async (): Promise<PaymentMethod[]> => {
   );
   const bkashConfigured = await isBkashConfigured();
 
+  const storeCurrency = normalizeStoreCurrency(settings.defaultCurrency);
+
   if (mode === 'stripe' || mode === 'both') {
     if (stripeConfigured) methods.push('stripe');
   }
 
-  if (mode === 'bkash' || mode === 'both') {
+  if ((mode === 'bkash' || mode === 'both') && storeCurrency === 'BDT') {
     if (bkashConfigured) methods.push('bkash');
   }
 

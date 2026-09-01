@@ -5,7 +5,7 @@ const defaultSettings = {
   storeName: PRODUCT_NAME,
   storeUrl: 'http://localhost:5173',
   supportEmail: 'support@example.com',
-  defaultCurrency: 'USD',
+  defaultCurrency: 'BDT',
   downloadExpiryDays: '7',
   downloadLimit: '5',
   setupCompleted: 'false',
@@ -28,8 +28,11 @@ const defaultSettings = {
   privacyUrl: '',
   logoPath: '',
   faviconPath: '',
+  heroImagePath: '',
   brandPrimaryColor: '#73f0c5',
   brandSecondaryColor: '#4eb8ff',
+  bodyFontPreset: 'theme-default',
+  headingFontPreset: 'match-body',
   heroHeadline: 'Sell digital products under your own brand.',
   heroSubheadline: 'Launch a storefront that feels like yours. Accept Stripe or bKash, deliver files securely, and run under your own brand.',
   primaryCtaLabel: 'Browse products',
@@ -44,6 +47,15 @@ const defaultSettings = {
   emptyCatalogMessage: 'This storefront is getting ready. Check back soon for the first release.',
   aboutTitle: '',
   aboutBody: '',
+  faqTitle: '',
+  faqBody: '',
+  trustTitle: '',
+  trustBlock1Title: '',
+  trustBlock1Body: '',
+  trustBlock2Title: '',
+  trustBlock2Body: '',
+  trustBlock3Title: '',
+  trustBlock3Body: '',
   announcementText: '',
   announcementUrl: '',
   socialWebsite: '',
@@ -89,7 +101,32 @@ export const upsertSettings = async (entries: Record<string, string>) => {
 
 export const ensureDefaultSettings = async () => {
   const defaults = getDefaultSettings();
-  await upsertSettings(defaults);
+  const existing = await prisma.setting.findMany({ select: { key: true } });
+  const existingKeys = new Set(existing.map((setting) => setting.key));
+
+  const missingEntries = Object.fromEntries(
+    Object.entries(defaults).filter(([key]) => !existingKeys.has(key)),
+  );
+
+  if (Object.keys(missingEntries).length > 0) {
+    await prisma.$transaction(
+      Object.entries(missingEntries).map(([key, value]) =>
+        prisma.setting.create({
+          data: { key, value },
+        }),
+      ),
+    );
+  }
+
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    const settings = await getSettingsMap();
+    if (settings.setupCompleted !== 'true') {
+      await upsertSettings({ setupCompleted: 'true' });
+    }
+  }
+
+  return getSettingsMap();
 };
 
 export const toIntSetting = (value: string | undefined, fallback: number) => {

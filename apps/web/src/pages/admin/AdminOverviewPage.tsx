@@ -17,9 +17,34 @@ export function AdminOverviewPage({
   settings: PublicSettings;
 }) {
   const draftProducts = products.filter((product) => product.status === 'draft').slice(0, 5);
+  const publishedProducts = products.filter((product) => product.status === 'published');
 
   return (
     <section className="admin-dashboard-grid">
+      {products.length === 0 ? (
+        <div className="panel admin-onboarding-panel">
+          <span className="eyebrow">Getting started</span>
+          <h3>Launch your first product</h3>
+          <p>Create a product, upload the digital file, configure payments and SMTP in Settings, then publish to open checkout.</p>
+          <div className="admin-quick-actions-grid">
+            <Link className="admin-quick-action" to="/admin/products/new">
+              <Plus size={14} />
+              <span>Create product</span>
+            </Link>
+            <Link className="admin-quick-action" to="/admin/settings">
+              <Settings size={14} />
+              <span>Configure store</span>
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {publishedProducts.length === 0 ? (
+        <div className="settings-note-card">
+          <strong>No published products yet</strong>
+          <span>Buyers can only check out published products. Publish at least one product to start selling.</span>
+        </div>
+      ) : null}
       <div className="admin-stats-row">
         <MetricCard label="Total revenue" value={formatMoney(stats.totalRevenueCents / 100, currency)} />
         <MetricCard label="Paid orders" value={String(stats.totalPurchases)} />

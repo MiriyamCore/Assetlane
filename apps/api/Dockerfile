@@ -2,16 +2,20 @@ FROM node:20-slim AS base
 
 WORKDIR /app
 
-# Install dependencies
+ARG DATABASE_PROVIDER=sqlite
+ENV DATABASE_PROVIDER=${DATABASE_PROVIDER}
+
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 RUN npm install
 
-# Build
 COPY apps/api ./apps/api
-RUN cd apps/api && npx prisma generate
-RUN cd apps/api && npm run build
+
+WORKDIR /app/apps/api
+RUN npx prisma generate
+RUN npm run build
+RUN chmod +x scripts/docker-entrypoint.sh
 
 EXPOSE 5001
 
-CMD ["node", "apps/api/dist/index.js"]
+ENTRYPOINT ["./scripts/docker-entrypoint.sh"]

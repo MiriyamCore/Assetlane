@@ -17,10 +17,14 @@ export type PublicSettings = {
   privacyUrl: string;
   logoPath: string;
   faviconPath: string;
+  heroImagePath: string;
   logoUrl: string;
   faviconUrl: string;
+  heroImageUrl: string;
   brandPrimaryColor: string;
   brandSecondaryColor: string;
+  bodyFontPreset: string;
+  headingFontPreset: string;
   heroHeadline: string;
   heroSubheadline: string;
   primaryCtaLabel: string;
@@ -35,6 +39,15 @@ export type PublicSettings = {
   emptyCatalogMessage: string;
   aboutTitle: string;
   aboutBody: string;
+  faqTitle: string;
+  faqBody: string;
+  trustTitle: string;
+  trustBlock1Title: string;
+  trustBlock1Body: string;
+  trustBlock2Title: string;
+  trustBlock2Body: string;
+  trustBlock3Title: string;
+  trustBlock3Body: string;
   announcementText: string;
   announcementUrl: string;
   socialWebsite: string;
@@ -79,12 +92,19 @@ export type Product = {
   featuredImageUrl: string | null;
   galleryImageUrls: string[];
   digitalFileName: string | null;
+  files?: ProductFile[];
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
 };
 
-export type PaymentMethod = 'stripe' | 'bkash';
+export type PaymentMethod = 'stripe' | 'bkash' | 'free';
+
+export type ProductFile = {
+  id: string;
+  fileName: string;
+  sortOrder: number;
+};
 
 export type Purchase = {
   id: string;
@@ -93,6 +113,8 @@ export type Purchase = {
   customerName: string | null;
   amountCents: number;
   amount: number;
+  originalAmount?: number | null;
+  discountAmount?: number;
   currency: string;
   status: 'pending' | 'paid' | 'refunded' | 'expired';
   paymentProvider: PaymentMethod;
@@ -124,6 +146,7 @@ export type Purchase = {
 export type DownloadPayload = {
   productTitle: string;
   fileName: string | null;
+  files?: ProductFile[];
   customerEmail: string;
   status: string;
   downloadCount: number;
@@ -177,4 +200,5 @@ export type ProductFormState = {
   featuredImage: File | null;
   galleryImages: File[];
   digitalFile: File | null;
+  digitalFiles: File[];
 };

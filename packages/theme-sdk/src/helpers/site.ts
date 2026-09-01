@@ -1,4 +1,4 @@
-import type { CatalogCopy, EmptyCatalogCopy, SettingsRecord, SiteData, SocialLink } from '../types';
+import type { CatalogCopy, EmptyCatalogCopy, FaqCopy, SettingsRecord, SiteData, SocialLink, TrustBlock, TrustCopy } from '../types';
 import { isTruthySetting, readSetting } from './settings';
 
 export const getSocialLinks = (settings: SettingsRecord): SocialLink[] =>
@@ -16,8 +16,9 @@ export const getSite = (settings: SettingsRecord): SiteData => ({
   supportEmail: readSetting(settings, 'supportEmail'),
   logoUrl: readSetting(settings, 'logoUrl'),
   faviconUrl: readSetting(settings, 'faviconUrl'),
+  heroImageUrl: readSetting(settings, 'heroImageUrl'),
   footerText: readSetting(settings, 'footerText'),
-  currency: readSetting(settings, 'defaultCurrency', 'USD'),
+  currency: readSetting(settings, 'defaultCurrency', 'BDT'),
   termsUrl: readSetting(settings, 'termsUrl'),
   privacyUrl: readSetting(settings, 'privacyUrl'),
   downloadExpiryDays: readSetting(settings, 'downloadExpiryDays', '7'),
@@ -57,6 +58,28 @@ export const getAboutCopy = (settings: SettingsRecord) => ({
 });
 
 export const hasAboutSection = (settings: SettingsRecord) => Boolean(readSetting(settings, 'aboutBody').trim());
+
+export const getFaqCopy = (settings: SettingsRecord): FaqCopy => ({
+  title: readSetting(settings, 'faqTitle', 'Frequently asked questions'),
+  body: readSetting(settings, 'faqBody'),
+});
+
+export const hasFaqSection = (settings: SettingsRecord) => Boolean(readSetting(settings, 'faqBody').trim());
+
+export const getTrustBlocks = (settings: SettingsRecord): TrustBlock[] =>
+  [1, 2, 3]
+    .map((index) => ({
+      title: readSetting(settings, `trustBlock${index}Title`),
+      body: readSetting(settings, `trustBlock${index}Body`),
+    }))
+    .filter((block) => Boolean(block.title.trim() || block.body.trim()));
+
+export const getTrustCopy = (settings: SettingsRecord): TrustCopy => ({
+  title: readSetting(settings, 'trustTitle', 'Why shop here'),
+  blocks: getTrustBlocks(settings),
+});
+
+export const hasTrustSection = (settings: SettingsRecord) => getTrustBlocks(settings).length > 0;
 
 export const hasAnnouncement = (settings: SettingsRecord) => Boolean(readSetting(settings, 'announcementText').trim());
 

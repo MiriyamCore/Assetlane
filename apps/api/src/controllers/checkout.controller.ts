@@ -2,10 +2,12 @@ import crypto from 'crypto';
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { createBkashPayment, executeBkashPayment } from '../lib/bkash';
+import { resolveDiscountForCheckout } from '../lib/discount';
 import { getEnabledPaymentMethods, resolvePaymentMethod } from '../lib/payments';
 import { getSettingsMap, toIntSetting } from '../lib/settings';
 import { getStripeClient, getStripeWebhookSecret } from '../lib/stripe';
-import { finalizePaidPurchase } from '../services/purchase.service';
+import { finalizePaidPurchase, markPurchaseRefunded } from '../services/purchase.service';
+import { buildCheckoutReceiptResponse } from '../lib/checkout-receipt';
 
 type CheckoutSessionInput = {
   productId: string;
@@ -14,6 +16,37 @@ type CheckoutSessionInput = {
   successUrl?: string;
   cancelUrl?: string;
   paymentMethod?: string;
+  discountCode?: string;
+};
+
+type CheckoutPricing = {
+  product: NonNullable<Awaited<ReturnType<typeof loadPublishedProduct>>>;
+  originalAmountCents: number;
+  discountAmountCents: number;
+  finalAmountCents: number;
+  discountCodeId: string | null;
+};
+
+const loadPublishedProduct = async (productId: string) =>
+  prisma.product.findUnique({
+    where: { id: productId },
+  });
+
+const resolveCheckoutPricing = async (productId: string, discountCode?: string): Promise<CheckoutPricing> => {
+  const product = await loadPublishedProduct(productId);
+  if (!product || product.status !== 'published') {
+    throw new Error('Published product not found.');
+  }
+
+  const appliedDiscount = await resolveDiscountForCheckout(discountCode, product.priceCents);
+
+  return {
+    product,
+    originalAmountCents: appliedDiscount?.originalAmountCents ?? product.priceCents,
+    discountAmountCents: appliedDiscount?.discountAmountCents ?? 0,
+    finalAmountCents: appliedDiscount?.finalAmountCents ?? product.priceCents,
+    discountCodeId: appliedDiscount?.discountCodeId ?? null,
+  };
 };
 
 const createPendingPurchase = async (input: {
@@ -21,8 +54,11 @@ const createPendingPurchase = async (input: {
   customerEmail: string;
   customerName?: string;
   amountCents: number;
+  originalAmountCents: number;
+  discountAmountCents: number;
+  discountCodeId?: string | null;
   currency: string;
-  paymentProvider: 'stripe' | 'bkash';
+  paymentProvider: 'stripe' | 'bkash' | 'free';
   externalCheckoutId: string;
 }) => {
   const settings = await getSettingsMap();
@@ -34,6 +70,9 @@ const createPendingPurchase = async (input: {
       customerEmail: input.customerEmail,
       customerName: input.customerName || null,
       amountCents: input.amountCents,
+      originalAmountCents: input.originalAmountCents,
+      discountAmountCents: input.discountAmountCents,
+      discountCodeId: input.discountCodeId || null,
       currency: input.currency,
       status: 'pending',
       paymentProvider: input.paymentProvider,
@@ -44,52 +83,73 @@ const createPendingPurchase = async (input: {
   });
 };
 
-const createStripeCheckout = async ({
-  productId,
-  customerEmail,
-  customerName,
-  successUrl,
-  cancelUrl,
-}: CheckoutSessionInput) => {
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product || product.status !== 'published') {
-    throw new Error('Published product not found.');
-  }
+const createFreeCheckout = async (input: CheckoutSessionInput, pricing: CheckoutPricing) => {
+  const settings = await getSettingsMap();
+  const storeUrl = settings.storeUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
+  const externalCheckoutId = `free-${pricing.product.id.slice(0, 8)}-${Date.now()}`;
 
+  const purchase = await createPendingPurchase({
+    productId: pricing.product.id,
+    customerEmail: input.customerEmail,
+    customerName: input.customerName,
+    amountCents: 0,
+    originalAmountCents: pricing.originalAmountCents,
+    discountAmountCents: pricing.discountAmountCents,
+    discountCodeId: pricing.discountCodeId,
+    currency: pricing.product.currency,
+    paymentProvider: 'free',
+    externalCheckoutId,
+  });
+
+  await finalizePaidPurchase(purchase.id, { customerName: input.customerName });
+
+  const successUrl = input.successUrl || `${storeUrl}/success?purchase_id=${purchase.id}`;
+
+  return {
+    id: purchase.id,
+    url: successUrl,
+    provider: 'free' as const,
+  };
+};
+
+const createStripeCheckout = async (input: CheckoutSessionInput, pricing: CheckoutPricing) => {
   const settings = await getSettingsMap();
   const stripe = await getStripeClient();
   const storeUrl = settings.storeUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: 'payment',
-    customer_email: customerEmail,
+    customer_email: input.customerEmail,
     line_items: [
       {
         quantity: 1,
         price_data: {
-          currency: product.currency.toLowerCase(),
-          unit_amount: product.priceCents,
+          currency: pricing.product.currency.toLowerCase(),
+          unit_amount: pricing.finalAmountCents,
           product_data: {
-            name: product.title,
-            description: product.summary,
+            name: pricing.product.title,
+            description: pricing.product.summary,
           },
         },
       },
     ],
-    success_url: successUrl || `${storeUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: cancelUrl || `${storeUrl}/cancel?product=${product.slug}`,
+    success_url: input.successUrl || `${storeUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: input.cancelUrl || `${storeUrl}/cancel?product=${pricing.product.slug}`,
     metadata: {
-      productId: product.id,
-      customerName: customerName || '',
+      productId: pricing.product.id,
+      customerName: input.customerName || '',
     },
   });
 
   await createPendingPurchase({
-    productId: product.id,
-    customerEmail,
-    customerName,
-    amountCents: product.priceCents,
-    currency: product.currency,
+    productId: pricing.product.id,
+    customerEmail: input.customerEmail,
+    customerName: input.customerName,
+    amountCents: pricing.finalAmountCents,
+    originalAmountCents: pricing.originalAmountCents,
+    discountAmountCents: pricing.discountAmountCents,
+    discountCodeId: pricing.discountCodeId,
+    currency: pricing.product.currency,
     paymentProvider: 'stripe',
     externalCheckoutId: checkoutSession.id,
   });
@@ -101,38 +161,30 @@ const createStripeCheckout = async ({
   };
 };
 
-const createBkashCheckout = async ({
-  productId,
-  customerEmail,
-  customerName,
-  successUrl,
-  cancelUrl,
-}: CheckoutSessionInput) => {
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product || product.status !== 'published') {
-    throw new Error('Published product not found.');
-  }
-
+const createBkashCheckout = async (input: CheckoutSessionInput, pricing: CheckoutPricing) => {
   const settings = await getSettingsMap();
   const apiUrl = process.env.API_PUBLIC_URL || `http://127.0.0.1:${process.env.PORT || 5001}`;
   const storeUrl = settings.storeUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
-  const invoiceNumber = `mc-${product.id.slice(0, 8)}-${Date.now()}`;
+  const invoiceNumber = `mc-${pricing.product.id.slice(0, 8)}-${Date.now()}`;
 
   const purchase = await createPendingPurchase({
-    productId: product.id,
-    customerEmail,
-    customerName,
-    amountCents: product.priceCents,
-    currency: product.currency,
+    productId: pricing.product.id,
+    customerEmail: input.customerEmail,
+    customerName: input.customerName,
+    amountCents: pricing.finalAmountCents,
+    originalAmountCents: pricing.originalAmountCents,
+    discountAmountCents: pricing.discountAmountCents,
+    discountCodeId: pricing.discountCodeId,
+    currency: pricing.product.currency,
     paymentProvider: 'bkash',
     externalCheckoutId: invoiceNumber,
   });
 
-  const callbackUrl = `${apiUrl}/api/checkout/bkash/callback?purchaseId=${purchase.id}&successUrl=${encodeURIComponent(successUrl || `${storeUrl}/success?purchase_id=${purchase.id}`)}&cancelUrl=${encodeURIComponent(cancelUrl || `${storeUrl}/cancel?product=${product.slug}`)}`;
+  const callbackUrl = `${apiUrl}/api/checkout/bkash/callback?purchaseId=${purchase.id}&successUrl=${encodeURIComponent(input.successUrl || `${storeUrl}/success?purchase_id=${purchase.id}`)}&cancelUrl=${encodeURIComponent(input.cancelUrl || `${storeUrl}/cancel?product=${pricing.product.slug}`)}`;
 
   const payment = await createBkashPayment({
-    amount: product.priceCents,
-    currency: product.currency,
+    amount: pricing.finalAmountCents,
+    currency: pricing.product.currency,
     invoiceNumber,
     callbackUrl,
   });
@@ -150,24 +202,55 @@ const createBkashCheckout = async ({
 };
 
 export const createCheckoutSessionInternal = async (input: CheckoutSessionInput) => {
+  const pricing = await resolveCheckoutPricing(input.productId, input.discountCode);
+
+  if (pricing.finalAmountCents <= 0) {
+    return createFreeCheckout(input, pricing);
+  }
+
   const paymentMethod = await resolvePaymentMethod(input.paymentMethod);
 
   if (paymentMethod === 'bkash') {
-    return createBkashCheckout(input);
+    return createBkashCheckout(input, pricing);
   }
 
-  return createStripeCheckout(input);
+  return createStripeCheckout(input, pricing);
+};
+
+export const validateCheckoutDiscount = async (req: Request, res: Response) => {
+  try {
+    const { productId, discountCode } = req.body as { productId?: string; discountCode?: string };
+
+    if (!productId || !discountCode?.trim()) {
+      return res.status(400).json({ message: 'productId and discountCode are required.' });
+    }
+
+    const pricing = await resolveCheckoutPricing(productId, discountCode);
+
+    return res.json({
+      code: discountCode.trim().toUpperCase(),
+      originalAmountCents: pricing.originalAmountCents,
+      discountAmountCents: pricing.discountAmountCents,
+      finalAmountCents: pricing.finalAmountCents,
+      currency: pricing.product.currency,
+    });
+  } catch (error) {
+    console.error('validateCheckoutDiscount error', error);
+    const message = error instanceof Error ? error.message : 'Unable to validate discount code.';
+    return res.status(400).json({ message });
+  }
 };
 
 export const createCheckoutSession = async (req: Request, res: Response) => {
   try {
-    const { productId, customerEmail, customerName, successUrl, cancelUrl, paymentMethod } = req.body as {
+    const { productId, customerEmail, customerName, successUrl, cancelUrl, paymentMethod, discountCode } = req.body as {
       productId?: string;
       customerEmail?: string;
       customerName?: string;
       successUrl?: string;
       cancelUrl?: string;
       paymentMethod?: string;
+      discountCode?: string;
     };
 
     if (!productId || !customerEmail) {
@@ -181,6 +264,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       successUrl,
       cancelUrl,
       paymentMethod,
+      discountCode,
     });
 
     return res.json(session);
@@ -199,6 +283,40 @@ export const getCheckoutMethods = async (_req: Request, res: Response) => {
   } catch (error) {
     console.error('getCheckoutMethods error', error);
     return res.status(500).json({ message: 'Unable to fetch payment methods.' });
+  }
+};
+
+export const getCheckoutReceipt = async (req: Request, res: Response) => {
+  try {
+    const purchaseId = String(req.query.purchase_id || '').trim();
+    const sessionId = String(req.query.session_id || '').trim();
+
+    if (!purchaseId && !sessionId) {
+      return res.status(400).json({ message: 'purchase_id or session_id is required.' });
+    }
+
+    const purchase = purchaseId
+      ? await prisma.purchase.findUnique({
+          where: { id: purchaseId },
+          include: { product: { select: { title: true } } },
+        })
+      : await prisma.purchase.findFirst({
+          where: { externalCheckoutId: sessionId },
+          include: { product: { select: { title: true } } },
+        });
+
+    if (!purchase) {
+      return res.status(404).json({ message: 'Order not found.' });
+    }
+
+    const settings = await getSettingsMap();
+    const storeUrl = settings.storeUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
+    const orderReference = purchaseId || sessionId;
+
+    return res.json(buildCheckoutReceiptResponse(purchase, storeUrl, orderReference));
+  } catch (error) {
+    console.error('getCheckoutReceipt error', error);
+    return res.status(500).json({ message: 'Unable to load order receipt.' });
   }
 };
 
@@ -323,16 +441,15 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
       case 'charge.refunded': {
         const charge = event.data.object as any;
-        await prisma.purchase.updateMany({
+        const purchases = await prisma.purchase.findMany({
           where: {
             OR: typeof charge.payment_intent === 'string'
               ? [{ stripeChargeId: charge.id }, { stripePaymentIntentId: charge.payment_intent }]
               : [{ stripeChargeId: charge.id }],
           },
-          data: {
-            status: 'refunded',
-          },
         });
+
+        await Promise.all(purchases.map((purchase) => markPurchaseRefunded(purchase.id)));
         break;
       }
 

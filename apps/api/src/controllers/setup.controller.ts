@@ -31,6 +31,12 @@ export const postSetup = async (req: Request, res: Response) => {
       stripeSecretKey?: string;
       stripePublicKey?: string;
       stripeWebhookSecret?: string;
+      paymentProviderMode?: string;
+      bkashAppKey?: string;
+      bkashAppSecret?: string;
+      bkashUsername?: string;
+      bkashPassword?: string;
+      bkashSandbox?: string;
       smtpHost?: string;
       smtpPort?: string;
       smtpUser?: string;
@@ -49,6 +55,12 @@ export const postSetup = async (req: Request, res: Response) => {
       stripeSecretKey: body.stripeSecretKey,
       stripePublicKey: body.stripePublicKey,
       stripeWebhookSecret: body.stripeWebhookSecret,
+      paymentProviderMode: body.paymentProviderMode,
+      bkashAppKey: body.bkashAppKey,
+      bkashAppSecret: body.bkashAppSecret,
+      bkashUsername: body.bkashUsername,
+      bkashPassword: body.bkashPassword,
+      bkashSandbox: body.bkashSandbox,
       smtpHost: body.smtpHost,
       smtpPort: body.smtpPort,
       smtpUser: body.smtpUser,

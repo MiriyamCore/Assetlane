@@ -14,9 +14,11 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
     "build": "npm run build --workspace=@assetlane/theme-sdk && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "test": "npm run test --workspace=@assetlane/theme-sdk && npm run test --workspace=apps/api",
     "seed": "npm run seed --workspace=apps/api",
     "prisma:generate": "npm run prisma:generate --workspace=apps/api",
     "prisma:push": "npm run prisma:push --workspace=apps/api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=apps/api",
     "dev:reset": "bash scripts/dev-reset.sh",
     "dev:reset:full": "bash scripts/dev-reset.sh --full"
   },

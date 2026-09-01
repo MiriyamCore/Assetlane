@@ -1,6 +1,23 @@
 version: "3.8"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-assetlane}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assetlane}
+      POSTGRES_DB: ${POSTGRES_DB:-assetlane}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-assetlane} -d ${POSTGRES_DB:-assetlane}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -8,7 +25,8 @@ services:
     ports:
       - "5001:5001"
     environment:
-      DATABASE_URL: file:./assetlane.db
+      DATABASE_PROVIDER: ${DATABASE_PROVIDER:-sqlite}
+      DATABASE_URL: ${DATABASE_URL:-file:./assetlane.db}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:5001}
       JWT_SECRET: ${JWT_SECRET:-assetlane-local-secret}
@@ -22,7 +40,7 @@ services:
       BKASH_PASSWORD: ${BKASH_PASSWORD:-}
       BKASH_SANDBOX: ${BKASH_SANDBOX:-true}
     volumes:
-      - ./apps/api/assetlane.db:/app/assetlane.db
+      - ./apps/api/assetlane.db:/app/apps/api/assetlane.db
       - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -30,6 +48,42 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  api-postgres:
+    profiles: ["postgres"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        DATABASE_PROVIDER: postgresql
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://${POSTGRES_USER:-assetlane}:${POSTGRES_PASSWORD:-assetlane}@postgres:5432/${POSTGRES_DB:-assetlane}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:5001}
+      JWT_SECRET: ${JWT_SECRET:-assetlane-local-secret}
+      PORT: 5001
+      NODE_ENV: production
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      BKASH_APP_KEY: ${BKASH_APP_KEY:-}
+      BKASH_APP_SECRET: ${BKASH_APP_SECRET:-}
+      BKASH_USERNAME: ${BKASH_USERNAME:-}
+      BKASH_PASSWORD: ${BKASH_PASSWORD:-}
+      BKASH_SANDBOX: ${BKASH_SANDBOX:-true}
+    volumes:
+      - ./storage:/app/storage
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   web:
     build:
@@ -42,3 +96,19 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  web-postgres:
+    profiles: ["postgres"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+    ports:
+      - "5173:5173"
+    depends_on:
+      api-postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

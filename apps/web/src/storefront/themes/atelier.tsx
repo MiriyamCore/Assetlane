@@ -2,7 +2,8 @@ import { CreditCard, Download, Mail, Package, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useHeroCopy, useHomeLayout } from '@assetlane/theme-sdk/react';
-import { AboutSection } from '../../components/storefront/AboutSection';
+import { HomeContentSections } from '../../components/storefront/HomeContentSections';
+import { HeroCoverImage } from '../../components/storefront/HeroCoverImage';
 import { CatalogSection } from '../../components/storefront/CatalogSection';
 import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedProductSpotlight';
 import { ErrorPanel, InlineError, LoadingPanel, SuccessPanel } from '../../components/ui/States';
@@ -72,6 +73,7 @@ function AtelierHomePage({ products, featuredProduct, loading, error, settings }
             </div>
           </motion.aside>
         ) : null}
+        <HeroCoverImage settings={settings} />
       </section>
       {layout.showFeaturedFirst && featuredProduct ? (
         <FeaturedProductSpotlight
@@ -83,7 +85,7 @@ function AtelierHomePage({ products, featuredProduct, loading, error, settings }
         />
       ) : null}
       {!layout.showCatalogFirst ? productSection : null}
-      <AboutSection settings={settings} />
+      <HomeContentSections settings={settings} />
     </div>
   );
 }
@@ -189,13 +191,24 @@ function AtelierProductPage({
   );
 }
 
-function AtelierSuccessPage({ settings, orderReference }: SuccessThemeProps) {
+function AtelierSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
+  const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
+  const pending = receiptLoading || receipt?.status === 'pending';
+
   return (
     <div className="container narrow-shell">
       <SuccessPanel
         title="Payment completed"
-        message={`Your purchase was captured successfully. We’ll email a secure download link to you from ${settings.supportEmail}.`}
+        message={
+          downloadUrl
+            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also emailed a secure download link from ${settings.supportEmail}.`
+            : pending
+              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
+              : `Your purchase was captured successfully. We'll email a secure download link to you from ${settings.supportEmail}.`
+        }
         {...(orderReference ? { detail: `Order reference: ${orderReference}` } : {})}
+        {...(downloadUrl ? { downloadUrl } : {})}
+        {...(pending ? { pending } : {})}
       />
     </div>
   );

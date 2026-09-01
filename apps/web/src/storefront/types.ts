@@ -11,6 +11,16 @@ export type StorefrontThemeProps = {
   settings: PublicSettings;
 };
 
+export type CheckoutExtrasProps = {
+  product: Product;
+  discountCode: string;
+  onDiscountCodeChange: (value: string) => void;
+  onApplyDiscount: () => void;
+  discountMessage: string;
+  finalPriceCents?: number | undefined;
+  isFreeProduct: boolean;
+};
+
 export type ProductThemeProps = {
   product: Product;
   settings: PublicSettings;
@@ -24,11 +34,21 @@ export type ProductThemeProps = {
   onCustomerEmailChange: (value: string) => void;
   onCustomerNameChange: (value: string) => void;
   onCheckout: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  checkoutExtras?: CheckoutExtrasProps;
+};
+
+export type CheckoutReceipt = {
+  status: 'paid' | 'pending' | 'refunded' | 'expired';
+  productTitle?: string;
+  downloadUrl?: string;
+  orderReference?: string;
 };
 
 export type SuccessThemeProps = {
   settings: PublicSettings;
   orderReference?: string | null | undefined;
+  receipt?: CheckoutReceipt | null;
+  receiptLoading?: boolean;
 };
 
 export type CancelThemeProps = {

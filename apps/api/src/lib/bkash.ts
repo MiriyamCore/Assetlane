@@ -110,7 +110,7 @@ export const createBkashPayment = async (input: {
   callbackUrl: string;
 }) => {
   if (input.currency.toUpperCase() !== 'BDT') {
-    throw new Error('bKash checkout currently supports BDT-priced products only.');
+    throw new Error('bKash checkout requires the store currency to be BDT.');
   }
 
   const token = await getBkashToken();

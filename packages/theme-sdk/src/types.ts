@@ -6,7 +6,7 @@ export type ThemeBase = 'atelier' | 'paper' | 'ember' | 'canvas';
 
 export type HomepageMode = 'hero-grid' | 'catalog-first' | 'featured-first';
 
-export type HomeSection = 'hero' | 'featured' | 'catalog' | 'about';
+export type HomeSection = 'hero' | 'featured' | 'catalog' | 'about' | 'faq' | 'trust';
 
 export type ThemePageContext = 'home' | 'product' | 'success' | 'cancel' | 'download';
 
@@ -46,6 +46,7 @@ export type SiteData = {
   supportEmail: string;
   logoUrl: string;
   faviconUrl: string;
+  heroImageUrl: string;
   footerText: string;
   currency: string;
   termsUrl: string;
@@ -76,6 +77,21 @@ export type HeroCopy = {
 export type AboutCopy = {
   title: string;
   body: string;
+};
+
+export type FaqCopy = {
+  title: string;
+  body: string;
+};
+
+export type TrustBlock = {
+  title: string;
+  body: string;
+};
+
+export type TrustCopy = {
+  title: string;
+  blocks: TrustBlock[];
 };
 
 export type AnnouncementData = {
@@ -134,12 +150,16 @@ export type HomePageContext = {
   catalog: CatalogCopy;
   emptyCatalog: EmptyCatalogCopy;
   about: AboutCopy;
+  faq: FaqCopy;
+  trust: TrustCopy;
   announcement: AnnouncementData | null;
   products: ThemeProduct[];
   featuredProduct: ThemeProduct | null;
   layout: HomeLayout;
   flags: {
     hasAbout: boolean;
+    hasFaq: boolean;
+    hasTrust: boolean;
     hasAnnouncement: boolean;
     hasProducts: boolean;
   };

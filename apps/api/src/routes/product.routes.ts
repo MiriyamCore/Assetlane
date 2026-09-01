@@ -19,7 +19,7 @@ ensureStorageDirectories();
 
 const storage = multer.diskStorage({
   destination: (_req, file, callback) => {
-    if (file.fieldname === 'digitalFile') {
+    if (file.fieldname === 'digitalFile' || file.fieldname === 'digitalFiles') {
       callback(null, digitalStorageRoot);
       return;
     }
@@ -49,6 +49,7 @@ router.post(
     { name: 'featuredImage', maxCount: 1 },
     { name: 'galleryImages', maxCount: 6 },
     { name: 'digitalFile', maxCount: 1 },
+    { name: 'digitalFiles', maxCount: 10 },
   ]),
   createProduct
 );
@@ -60,6 +61,7 @@ router.put(
     { name: 'featuredImage', maxCount: 1 },
     { name: 'galleryImages', maxCount: 6 },
     { name: 'digitalFile', maxCount: 1 },
+    { name: 'digitalFiles', maxCount: 10 },
   ]),
   updateProduct
 );

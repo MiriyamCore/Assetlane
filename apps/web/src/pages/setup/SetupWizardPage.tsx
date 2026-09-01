@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
+import { DEFAULT_STORE_CURRENCY, STORE_CURRENCIES, STORE_CURRENCY_LABELS } from '../../lib/currency';
 import { InlineError } from '../../components/ui/States';
 import { COMPANY_NAME, PRODUCT_NAME } from '../../lib/platform';
 
@@ -22,10 +23,16 @@ export function SetupWizardPage() {
     storeDescription: '',
     storeUrl: window.location.origin,
     supportEmail: '',
-    defaultCurrency: 'USD',
+    defaultCurrency: DEFAULT_STORE_CURRENCY,
     stripeSecretKey: '',
     stripePublicKey: '',
     stripeWebhookSecret: '',
+    paymentProviderMode: 'both',
+    bkashAppKey: '',
+    bkashAppSecret: '',
+    bkashUsername: '',
+    bkashPassword: '',
+    bkashSandbox: 'true',
     smtpHost: '',
     smtpPort: '587',
     smtpUser: '',
@@ -91,6 +98,12 @@ export function SetupWizardPage() {
           stripeSecretKey: form.stripeSecretKey,
           stripePublicKey: form.stripePublicKey,
           stripeWebhookSecret: form.stripeWebhookSecret,
+          paymentProviderMode: form.paymentProviderMode,
+          bkashAppKey: form.bkashAppKey,
+          bkashAppSecret: form.bkashAppSecret,
+          bkashUsername: form.bkashUsername,
+          bkashPassword: form.bkashPassword,
+          bkashSandbox: form.bkashSandbox,
           smtpHost: form.smtpHost,
           smtpPort: form.smtpPort,
           smtpUser: form.smtpUser,
@@ -168,8 +181,14 @@ export function SetupWizardPage() {
               <input type="email" value={form.supportEmail} onChange={(event) => updateField('supportEmail', event.target.value)} placeholder={form.adminEmail || 'support@yourstore.com'} />
             </label>
             <label>
-              Default currency
-              <input value={form.defaultCurrency} onChange={(event) => updateField('defaultCurrency', event.target.value)} />
+              Store currency
+              <select value={form.defaultCurrency} onChange={(event) => updateField('defaultCurrency', event.target.value)}>
+                {STORE_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {STORE_CURRENCY_LABELS[currency]}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         ) : null}
@@ -187,6 +206,38 @@ export function SetupWizardPage() {
             <label className="form-field-full">
               Stripe webhook secret
               <input type="password" value={form.stripeWebhookSecret} onChange={(event) => updateField('stripeWebhookSecret', event.target.value)} placeholder="whsec_…" />
+            </label>
+            <label>
+              Payment providers
+              <select value={form.paymentProviderMode} onChange={(event) => updateField('paymentProviderMode', event.target.value)}>
+                <option value="stripe">Stripe only</option>
+                <option value="bkash">bKash only</option>
+                <option value="both">Stripe + bKash</option>
+              </select>
+            </label>
+            <label>
+              bKash app key
+              <input value={form.bkashAppKey} onChange={(event) => updateField('bkashAppKey', event.target.value)} />
+            </label>
+            <label>
+              bKash app secret
+              <input type="password" value={form.bkashAppSecret} onChange={(event) => updateField('bkashAppSecret', event.target.value)} />
+            </label>
+            <label>
+              bKash username
+              <input value={form.bkashUsername} onChange={(event) => updateField('bkashUsername', event.target.value)} />
+            </label>
+            <label>
+              bKash password
+              <input type="password" value={form.bkashPassword} onChange={(event) => updateField('bkashPassword', event.target.value)} />
+            </label>
+            <label className="settings-toggle">
+              <input
+                checked={form.bkashSandbox === 'true'}
+                onChange={(event) => updateField('bkashSandbox', event.target.checked ? 'true' : 'false')}
+                type="checkbox"
+              />
+              <span>bKash sandbox mode</span>
             </label>
             <label>
               SMTP host

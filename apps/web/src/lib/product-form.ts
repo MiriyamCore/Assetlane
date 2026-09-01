@@ -1,5 +1,6 @@
 import type { Product, ProductFormState, PublicSettings } from '../types/store';
 import { defaultStoreThemeId } from '../storefront/catalog';
+import { DEFAULT_STORE_CURRENCY } from './currency';
 
 import { PRODUCT_NAME } from './platform';
 
@@ -9,7 +10,7 @@ export const defaultSettings: PublicSettings = {
   storeUrl: 'http://localhost:5173',
   storeMode: 'hybrid',
   supportEmail: 'support@example.com',
-  defaultCurrency: 'USD',
+  defaultCurrency: DEFAULT_STORE_CURRENCY,
   downloadExpiryDays: '7',
   downloadLimit: '5',
   footerText: 'Thanks for visiting our store.',
@@ -17,10 +18,14 @@ export const defaultSettings: PublicSettings = {
   privacyUrl: '',
   logoPath: '',
   faviconPath: '',
+  heroImagePath: '',
   logoUrl: '',
   faviconUrl: '',
+  heroImageUrl: '',
   brandPrimaryColor: '#73f0c5',
   brandSecondaryColor: '#4eb8ff',
+  bodyFontPreset: 'theme-default',
+  headingFontPreset: 'match-body',
   heroHeadline: 'Sell digital products under your own brand.',
   heroSubheadline: 'Launch a storefront that feels like yours, connect Stripe and SMTP, and start selling files directly to customers.',
   primaryCtaLabel: 'Browse products',
@@ -35,6 +40,15 @@ export const defaultSettings: PublicSettings = {
   emptyCatalogMessage: 'This storefront is getting ready. Check back soon for the first release.',
   aboutTitle: '',
   aboutBody: '',
+  faqTitle: '',
+  faqBody: '',
+  trustTitle: '',
+  trustBlock1Title: '',
+  trustBlock1Body: '',
+  trustBlock2Title: '',
+  trustBlock2Body: '',
+  trustBlock3Title: '',
+  trustBlock3Body: '',
   announcementText: '',
   announcementUrl: '',
   socialWebsite: '',
@@ -60,6 +74,8 @@ export const settingsFields: Array<{ key: string; label: string }> = [
   { key: 'secondaryCtaLabel', label: 'Secondary CTA label' },
   { key: 'brandPrimaryColor', label: 'Primary brand color' },
   { key: 'brandSecondaryColor', label: 'Secondary brand color' },
+  { key: 'bodyFontPreset', label: 'Body font' },
+  { key: 'headingFontPreset', label: 'Heading font' },
   { key: 'homepageMode', label: 'Homepage mode' },
   { key: 'featuredProductSlug', label: 'Featured product' },
   { key: 'showHeroHighlights', label: 'Show hero highlight cards' },
@@ -70,6 +86,15 @@ export const settingsFields: Array<{ key: string; label: string }> = [
   { key: 'emptyCatalogMessage', label: 'Empty catalog message' },
   { key: 'aboutTitle', label: 'About section title' },
   { key: 'aboutBody', label: 'About section body' },
+  { key: 'faqTitle', label: 'FAQ section title' },
+  { key: 'faqBody', label: 'FAQ content (Markdown)' },
+  { key: 'trustTitle', label: 'Trust section title' },
+  { key: 'trustBlock1Title', label: 'Trust block 1 title' },
+  { key: 'trustBlock1Body', label: 'Trust block 1 description' },
+  { key: 'trustBlock2Title', label: 'Trust block 2 title' },
+  { key: 'trustBlock2Body', label: 'Trust block 2 description' },
+  { key: 'trustBlock3Title', label: 'Trust block 3 title' },
+  { key: 'trustBlock3Body', label: 'Trust block 3 description' },
   { key: 'announcementText', label: 'Announcement text' },
   { key: 'announcementUrl', label: 'Announcement link' },
   { key: 'socialWebsite', label: 'Website URL' },
@@ -77,7 +102,7 @@ export const settingsFields: Array<{ key: string; label: string }> = [
   { key: 'socialInstagram', label: 'Instagram URL' },
   { key: 'socialYoutube', label: 'YouTube URL' },
   { key: 'showPublicAdminLinks', label: 'Show admin links on storefront' },
-  { key: 'defaultCurrency', label: 'Default currency' },
+  { key: 'defaultCurrency', label: 'Store currency' },
   { key: 'downloadExpiryDays', label: 'Download expiry days' },
   { key: 'downloadLimit', label: 'Download limit' },
   { key: 'footerText', label: 'Footer text' },
@@ -118,6 +143,7 @@ export const emptyProductForm = (currency: string): ProductFormState => ({
   featuredImage: null,
   galleryImages: [],
   digitalFile: null,
+  digitalFiles: [],
 });
 
 export const parseTagsInput = (value: string) =>
@@ -142,4 +168,5 @@ export const productToFormState = (product: Product): ProductFormState => ({
   featuredImage: null,
   galleryImages: [],
   digitalFile: null,
+  digitalFiles: [],
 });

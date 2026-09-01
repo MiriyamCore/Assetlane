@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductStatus {
+  draft
+  published
+  archived
+}
+
+enum PurchaseStatus {
+  pending
+  paid
+  refunded
+  expired
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String        @id @default(uuid())
+  title             String
+  slug              String        @unique
+  summary           String
+  description       String
+  tags              Json?
+  priceCents        Int
+  currency          String
+  status            ProductStatus @default(draft)
+  version           String?
+  changelog         String?
+  seoTitle          String?
+  metaDescription   String?
+  featuredImagePath String?
+  galleryImagePaths Json?
+  digitalFilePath   String?
+  digitalFileName   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  publishedAt       DateTime?
+  purchases         Purchase[]
+  files             ProductFile[]
+}
+
+model ProductFile {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  filePath  String
+  fileName  String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model DiscountCode {
+  id              String     @id @default(uuid())
+  code            String     @unique
+  percentOff      Int?
+  amountOffCents  Int?
+  maxRedemptions  Int?
+  redemptionCount Int        @default(0)
+  active          Boolean    @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  purchases       Purchase[]
+}
+
+model Purchase {
+  id                      String         @id @default(uuid())
+  productId               String
+  product                 Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerEmail           String
+  customerName            String?
+  amountCents             Int
+  originalAmountCents     Int?
+  discountAmountCents     Int            @default(0)
+  currency                String
+  status                  PurchaseStatus @default(pending)
+  paymentProvider         String         @default("stripe")
+  externalCheckoutId      String         @unique
+  stripePaymentIntentId   String?
+  stripeChargeId          String?
+  bkashTrxId              String?
+  discountCodeId          String?
+  discountCode            DiscountCode?  @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  downloadToken           String         @unique
+  downloadExpiresAt       DateTime?
+  downloadCount           Int            @default(0)
+  downloadLimit           Int            @default(5)
+  purchasedAt             DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  downloadEvents          DownloadEvent[]
+}
+
+model DownloadEvent {
+  id           String   @id @default(uuid())
+  purchaseId   String
+  purchase     Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  ipAddress    String?
+  userAgent    String?
+  downloadedAt DateTime @default(now())
+}
+
+model LibrarySession {
+  id          String   @id @default(uuid())
+  email       String
+  accessToken String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(uuid())
+  url       String
+  secret    String
+  events    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

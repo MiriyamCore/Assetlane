@@ -13,6 +13,7 @@ AssetLane gives merchants a storefront, admin dashboard, and API to publish digi
 | Document | Description |
 |----------|-------------|
 | [BETA_LAUNCH.md](BETA_LAUNCH.md) | Production deployment runbook — environment variables, webhooks, verification checklist |
+| [FEATURE_TRACK.md](FEATURE_TRACK.md) | Feature improvements, fixes, and roadmap |
 | [THEMES.md](THEMES.md) | Zip theme package format, validation rules, and headless API references |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup and pull request guidelines |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting policy |
@@ -58,8 +59,14 @@ Configure Stripe, bKash, and SMTP in **Admin → Settings** after setup. For loc
 **Commerce**
 - Stripe Checkout for card payments
 - bKash Tokenized Checkout for BDT-priced products
+- Global store currency (BDT default; USD, EUR, GBP)
+- Discount codes at checkout
+- Free products with instant delivery
 - Purchase tracking, refunds, and download history
 - Configurable download expiry and download count limits
+- Multiple downloadable files per product
+- Customer purchase library (magic-link access)
+- Outbound webhooks for paid/refunded orders
 
 **Delivery**
 - Secure download tokens (not publicly guessable)
@@ -162,7 +169,8 @@ Full specification: [THEMES.md](THEMES.md).
 | `npm run dev` | Start API and web in development mode |
 | `npm run build` | Build all workspaces |
 | `npm run seed` | Load sample products (optional) |
-| `npm run prisma:push` | Apply schema changes to SQLite |
+| `npm run prisma:push` | Apply schema changes to SQLite (local dev) |
+| `npm run prisma:migrate:deploy` | Apply PostgreSQL migrations (production) |
 | `npm run dev:reset` | Wipe database and return to setup wizard |
 | `npm run dev:reset:full` | Reset database, uploads, and installed themes |
 
@@ -173,6 +181,29 @@ docker compose up --build
 ```
 
 Uploaded files persist via the `storage/` volume mount. For production deployment, see [BETA_LAUNCH.md](BETA_LAUNCH.md).
+
+### PostgreSQL (production)
+
+Local development defaults to **SQLite** (`file:./assetlane.db`). For production, use **PostgreSQL**:
+
+```bash
+# Start Postgres locally
+docker compose --profile postgres up postgres -d
+
+# Apply migrations and run API against Postgres
+export DATABASE_PROVIDER=postgresql
+export DATABASE_URL=postgresql://assetlane:assetlane@localhost:5432/assetlane
+npm run prisma:migrate:deploy
+npm run dev
+```
+
+Full Docker stack with Postgres:
+
+```bash
+docker compose --profile postgres up --build api-postgres web-postgres postgres
+```
+
+Set `DATABASE_PROVIDER=postgresql` and a `postgresql://…` `DATABASE_URL` in production. The API Docker image runs `prisma migrate deploy` automatically on startup when Postgres is configured.
 
 ---
 

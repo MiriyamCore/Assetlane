@@ -1,7 +1,9 @@
 import fs from 'fs';
 import { Request, Response } from 'express';
 import { ProductStatus, Prisma } from '@prisma/client';
+import { normalizeStoreCurrency } from '../lib/currency';
 import prisma from '../lib/prisma';
+import { getSettingsMap } from '../lib/settings';
 import { getAbsoluteStoragePath, inferImageMimeType, sanitizeFilename } from '../lib/storage';
 import { serializeProduct } from '../lib/serializers';
 
@@ -26,11 +28,60 @@ const productSelection = {
   metaDescription: true,
   featuredImagePath: true,
   galleryImagePaths: true,
+  digitalFilePath: true,
   digitalFileName: true,
+  files: {
+    orderBy: { sortOrder: 'asc' as const },
+    select: {
+      id: true,
+      fileName: true,
+      sortOrder: true,
+    },
+  },
   createdAt: true,
   updatedAt: true,
   publishedAt: true,
 } satisfies Prisma.ProductSelect;
+
+const collectDigitalUploads = (files: Record<string, Express.Multer.File[]> | undefined) => {
+  const uploads = [...(files?.digitalFiles || [])];
+  if (files?.digitalFile?.[0]) {
+    uploads.unshift(files.digitalFile[0]);
+  }
+  return uploads;
+};
+
+const persistDigitalUploads = async (productId: string, uploads: Express.Multer.File[], hasPrimary: boolean) => {
+  if (uploads.length === 0) {
+    return;
+  }
+
+  const [primaryUpload, ...additionalUploads] = uploads;
+
+  if (!hasPrimary && primaryUpload) {
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        digitalFilePath: `digital/${primaryUpload.filename}`,
+        digitalFileName: primaryUpload.originalname,
+      },
+    });
+  } else if (primaryUpload) {
+    additionalUploads.unshift(primaryUpload);
+  }
+
+  if (additionalUploads.length > 0) {
+    const existingCount = await prisma.productFile.count({ where: { productId } });
+    await prisma.productFile.createMany({
+      data: additionalUploads.map((file, index) => ({
+        productId,
+        filePath: `digital/${file.filename}`,
+        fileName: file.originalname,
+        sortOrder: existingCount + index,
+      })),
+    });
+  }
+};
 
 const parseGalleryPaths = (value: unknown) => {
   if (!Array.isArray(value)) {
@@ -136,7 +187,7 @@ export const createProduct = async (req: Request, res: Response) => {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
     const featuredImage = files?.featuredImage?.[0] ?? null;
     const galleryImages = files?.galleryImages ?? [];
-    const digitalFile = files?.digitalFile?.[0] ?? null;
+    const digitalUploads = collectDigitalUploads(files);
     const {
       title,
       slug,
@@ -152,14 +203,17 @@ export const createProduct = async (req: Request, res: Response) => {
       metaDescription,
     } = req.body as Record<string, string | undefined>;
 
-    if (!title || !summary || !description || !priceCents || !currency) {
-      return res.status(400).json({ message: 'Title, summary, description, priceCents, and currency are required.' });
+    if (!title || !summary || !description || !priceCents) {
+      return res.status(400).json({ message: 'Title, summary, description, and priceCents are required.' });
     }
+
+    const settings = await getSettingsMap();
+    const storeCurrency = normalizeStoreCurrency(settings.defaultCurrency);
 
     const normalizedSlug = toSlug(slug || title);
     const parsedPriceCents = Number.parseInt(priceCents, 10);
-    if (!Number.isFinite(parsedPriceCents) || parsedPriceCents <= 0) {
-      return res.status(400).json({ message: 'priceCents must be a positive integer.' });
+    if (!Number.isFinite(parsedPriceCents) || parsedPriceCents < 0) {
+      return res.status(400).json({ message: 'priceCents must be zero or a positive integer.' });
     }
 
     const normalizedStatus = (status as ProductStatus | undefined) ?? ProductStatus.draft;
@@ -171,7 +225,7 @@ export const createProduct = async (req: Request, res: Response) => {
         description: description.trim(),
         tags: parseTags(tags),
         priceCents: parsedPriceCents,
-        currency: currency.trim().toUpperCase(),
+        currency: storeCurrency,
         status: normalizedStatus,
         version: version?.trim() || null,
         changelog: changelog?.trim() || null,
@@ -179,14 +233,30 @@ export const createProduct = async (req: Request, res: Response) => {
         metaDescription: metaDescription?.trim() || null,
         featuredImagePath: featuredImage ? `images/${featuredImage.filename}` : null,
         galleryImagePaths: galleryImages.map((file) => `images/${file.filename}`),
-        digitalFilePath: digitalFile ? `digital/${digitalFile.filename}` : null,
-        digitalFileName: digitalFile?.originalname || null,
+        digitalFilePath: digitalUploads[0] ? `digital/${digitalUploads[0].filename}` : null,
+        digitalFileName: digitalUploads[0]?.originalname || null,
         publishedAt: normalizedStatus === ProductStatus.published ? new Date() : null,
       },
       select: productSelection,
     });
 
-    return res.status(201).json(serializeProduct(product));
+    if (digitalUploads.length > 1) {
+      await prisma.productFile.createMany({
+        data: digitalUploads.slice(1).map((file, index) => ({
+          productId: product.id,
+          filePath: `digital/${file.filename}`,
+          fileName: file.originalname,
+          sortOrder: index,
+        })),
+      });
+    }
+
+    const hydrated = await prisma.product.findUnique({
+      where: { id: product.id },
+      select: productSelection,
+    });
+
+    return res.status(201).json(serializeProduct(hydrated || product));
   } catch (error) {
     console.error('createProduct error', error);
     return res.status(500).json({ message: 'Unable to create product.' });
@@ -204,7 +274,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
     const featuredImage = files?.featuredImage?.[0] ?? null;
     const galleryImages = files?.galleryImages ?? [];
-    const digitalFile = files?.digitalFile?.[0] ?? null;
+    const digitalUploads = collectDigitalUploads(files);
     const {
       title,
       slug,
@@ -220,6 +290,8 @@ export const updateProduct = async (req: Request, res: Response) => {
       metaDescription,
     } = req.body as Record<string, string | undefined>;
 
+    const settings = await getSettingsMap();
+    const storeCurrency = normalizeStoreCurrency(settings.defaultCurrency);
     const nextStatus = (status as ProductStatus | undefined) ?? existing.status;
     const data: Prisma.ProductUpdateInput = {
       title: title?.trim() || existing.title,
@@ -227,7 +299,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       summary: summary?.trim() || existing.summary,
       description: description?.trim() || existing.description,
       tags: tags ? parseTags(tags) : parseStoredTags(existing.tags),
-      currency: currency?.trim().toUpperCase() || existing.currency,
+      currency: storeCurrency,
       status: nextStatus,
       version: version?.trim() || null,
       changelog: changelog?.trim() || null,
@@ -237,8 +309,8 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     if (priceCents) {
       const parsedPrice = Number.parseInt(priceCents, 10);
-      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-        return res.status(400).json({ message: 'priceCents must be a positive integer.' });
+      if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ message: 'priceCents must be zero or a positive integer.' });
       }
 
       data.priceCents = parsedPrice;
@@ -260,9 +332,14 @@ export const updateProduct = async (req: Request, res: Response) => {
       data.galleryImagePaths = galleryImages.map((file) => `images/${file.filename}`);
     }
 
-    if (digitalFile) {
-      data.digitalFilePath = `digital/${digitalFile.filename}`;
-      data.digitalFileName = digitalFile.originalname;
+    if (digitalUploads.length > 0) {
+      if (!existing.digitalFilePath && digitalUploads[0]) {
+        data.digitalFilePath = `digital/${digitalUploads[0].filename}`;
+        data.digitalFileName = digitalUploads[0].originalname;
+        await persistDigitalUploads(existing.id, digitalUploads.slice(1), true);
+      } else {
+        await persistDigitalUploads(existing.id, digitalUploads, Boolean(existing.digitalFilePath));
+      }
     }
 
     const updated = await prisma.product.update({

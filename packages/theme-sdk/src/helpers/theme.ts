@@ -1,6 +1,6 @@
 import type { HomepageMode, HomeSection, HomeLayout, SettingsRecord, ThemeBase, ThemePackageLayout, ThemeProduct } from '../types';
 import { isTruthySetting, readSetting } from './settings';
-import { getHomepageMode } from './site';
+import { getHomepageMode, hasFaqSection, hasTrustSection } from './site';
 
 export const resolveThemeBase = (value: string | undefined): ThemeBase => {
   if (value === 'paper' || value === 'ember' || value === 'canvas') {
@@ -64,6 +64,12 @@ export const getHomeSections = (
   }
 
   sections.push('about');
+  if (hasFaqSection(settings)) {
+    sections.push('faq');
+  }
+  if (hasTrustSection(settings)) {
+    sections.push('trust');
+  }
   return sections;
 };
 

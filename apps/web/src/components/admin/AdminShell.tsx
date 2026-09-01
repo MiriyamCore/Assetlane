@@ -9,6 +9,7 @@ import {
   Settings,
   ShoppingBag,
   Store,
+  Tag,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import type { AuthUser, PublicSettings } from '../../types/store';
@@ -19,6 +20,7 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   products: { title: 'Products', description: 'Manage digital products, pricing, and delivery files.' },
   'products/new': { title: 'New product', description: 'Create a new digital product listing.' },
   purchases: { title: 'Orders', description: 'Track purchases, delivery status, and download activity.' },
+  discounts: { title: 'Discounts', description: 'Create promotion codes for checkout.' },
   settings: { title: 'Settings', description: 'Branding, storefront, payments, email, and distribution.' },
 };
 
@@ -74,6 +76,10 @@ export function AdminShell({
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/purchases">
               <ShoppingBag size={15} />
               <span>Orders</span>
+            </NavLink>
+            <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/discounts">
+              <Tag size={15} />
+              <span>Discounts</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/settings">
               <Settings size={15} />

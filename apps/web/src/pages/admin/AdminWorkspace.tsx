@@ -7,6 +7,7 @@ import { defaultSettings } from '../../lib/product-form';
 import type { AuthUser, Product, PublicSettings, SettingsMap, StatsPayload, StoreTheme } from '../../types/store';
 import { ErrorPanel, InlineError, LoadingPanel } from '../../components/ui/States';
 import { AdminOverviewPage } from './AdminOverviewPage';
+import { DiscountCodesPage } from './DiscountCodesPage';
 import { ProductCatalogPage } from './ProductCatalogPage';
 import { ProductEditorPage } from './ProductEditorPage';
 import { PurchaseManager } from './PurchaseManager';
@@ -47,7 +48,14 @@ export function AdminWorkspace({
 
   useEffect(() => {
     loadWorkspace()
-      .catch(() => navigate('/login'))
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unable to load admin dashboard.';
+        if (/authentication|session|sign in/i.test(message)) {
+          navigate('/login');
+          return;
+        }
+        setScreenError(message);
+      })
       .finally(() => setLoading(false));
   }, [navigate]);
 
@@ -138,6 +146,7 @@ export function AdminWorkspace({
       <ProductEditorPage
         defaultCurrency={adminSettings.defaultCurrency || settings.defaultCurrency}
         mode="create"
+        storeUrl={adminSettings.storeUrl || settings.storeUrl}
         onSaved={async () => {
           await refreshWorkspaceInner();
           navigate('/admin/products');
@@ -149,6 +158,7 @@ export function AdminWorkspace({
       <ProductEditorPage
         defaultCurrency={adminSettings.defaultCurrency || settings.defaultCurrency}
         mode="edit"
+        storeUrl={adminSettings.storeUrl || settings.storeUrl}
         onSaved={async () => {
           await refreshWorkspaceInner();
           navigate('/admin/products');
@@ -160,6 +170,8 @@ export function AdminWorkspace({
     );
   } else if (adminPath === 'purchases') {
     content = <PurchaseManager products={products} />;
+  } else if (adminPath === 'discounts') {
+    content = <DiscountCodesPage />;
   } else if (adminPath === 'settings') {
     content = (
       <StoreSettingsPage
@@ -204,10 +216,12 @@ export function AdminWorkspace({
           const payload = new FormData();
           if (files.logo) payload.append('logo', files.logo);
           if (files.favicon) payload.append('favicon', files.favicon);
+          if (files.heroImage) payload.append('heroImage', files.heroImage);
           if (files.removeLogo) payload.append('removeLogo', 'true');
           if (files.removeFavicon) payload.append('removeFavicon', 'true');
+          if (files.removeHeroImage) payload.append('removeHeroImage', 'true');
 
-          if (!files.logo && !files.favicon && !files.removeLogo && !files.removeFavicon) {
+          if (!files.logo && !files.favicon && !files.heroImage && !files.removeLogo && !files.removeFavicon && !files.removeHeroImage) {
             return;
           }
 

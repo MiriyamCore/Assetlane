@@ -1,5 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
+import { resolveTypography } from '@assetlane/theme-sdk';
 import Navbar from './Navbar';
 import { AnnouncementBar } from './storefront/AnnouncementBar';
 import { SocialLinks } from './storefront/SocialLinks';
@@ -18,6 +19,7 @@ type StorefrontLayoutProps = {
 export function StorefrontLayout({ settings, embed = false, children }: StorefrontLayoutProps) {
   const themeBase = resolveStoreThemeBase(settings);
   const themeId = settings.storefrontTheme || defaultStoreThemeId;
+  const typography = useMemo(() => resolveTypography(settings), [settings]);
 
   useEffect(() => {
     document.body.dataset.surface = 'storefront';
@@ -53,15 +55,42 @@ export function StorefrontLayout({ settings, embed = false, children }: Storefro
     };
   }, [settings.storefrontThemeStylesheetUrl]);
 
+  useEffect(() => {
+    const linkId = 'assetlane-storefront-fonts';
+    const existingLink = document.getElementById(linkId);
+
+    if (!typography.googleFontsUrl) {
+      existingLink?.remove();
+      return;
+    }
+
+    const link = existingLink instanceof HTMLLinkElement ? existingLink : document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = typography.googleFontsUrl;
+
+    if (!existingLink) {
+      document.head.appendChild(link);
+    }
+
+    return () => {
+      link.remove();
+    };
+  }, [typography.googleFontsUrl]);
+
+  const storefrontStyle = {
+    ['--brand-primary' as string]: settings.brandPrimaryColor || defaultSettings.brandPrimaryColor,
+    ['--brand-secondary' as string]: settings.brandSecondaryColor || defaultSettings.brandSecondaryColor,
+    ...(typography.bodyFontFamily ? { ['--font-body' as string]: typography.bodyFontFamily } : {}),
+    ...(typography.headingFontFamily ? { ['--font-display' as string]: typography.headingFontFamily } : {}),
+  };
+
   return (
     <div
       className={embed ? 'storefront-shell storefront-shell-embed' : 'storefront-shell'}
       data-store-theme={themeId}
       data-theme={themeBase}
-      style={{
-        ['--brand-primary' as string]: settings.brandPrimaryColor || defaultSettings.brandPrimaryColor,
-        ['--brand-secondary' as string]: settings.brandSecondaryColor || defaultSettings.brandSecondaryColor,
-      }}
+      style={storefrontStyle}
     >
       {!embed ? <AnnouncementBar settings={settings} /> : null}
       {!embed ? (

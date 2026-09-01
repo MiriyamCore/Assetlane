@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import prisma from './prisma';
+import { normalizeStoreCurrency } from './currency';
 import { getSettingsMap, upsertSettings } from './settings';
 import crypto from 'crypto';
 
@@ -31,6 +32,12 @@ export type SetupPayload = {
   stripeSecretKey?: string;
   stripePublicKey?: string;
   stripeWebhookSecret?: string;
+  paymentProviderMode?: string;
+  bkashAppKey?: string;
+  bkashAppSecret?: string;
+  bkashUsername?: string;
+  bkashPassword?: string;
+  bkashSandbox?: string;
   smtpHost?: string;
   smtpPort?: string;
   smtpUser?: string;
@@ -75,7 +82,7 @@ export const completeSetup = async (payload: SetupPayload) => {
     storeDescription: payload.storeDescription.trim(),
     storeUrl,
     supportEmail: payload.supportEmail?.trim() || email,
-    defaultCurrency: payload.defaultCurrency?.trim() || 'USD',
+    defaultCurrency: normalizeStoreCurrency(payload.defaultCurrency),
     footerText: payload.storeDescription.trim(),
     storeMode: 'hybrid',
     headlessApiKey,
@@ -83,6 +90,12 @@ export const completeSetup = async (payload: SetupPayload) => {
     stripeSecretKey: payload.stripeSecretKey?.trim() || '',
     stripePublicKey: payload.stripePublicKey?.trim() || '',
     stripeWebhookSecret: payload.stripeWebhookSecret?.trim() || '',
+    paymentProviderMode: payload.paymentProviderMode?.trim() || 'both',
+    bkashAppKey: payload.bkashAppKey?.trim() || '',
+    bkashAppSecret: payload.bkashAppSecret?.trim() || '',
+    bkashUsername: payload.bkashUsername?.trim() || '',
+    bkashPassword: payload.bkashPassword?.trim() || '',
+    bkashSandbox: payload.bkashSandbox === 'false' ? 'false' : 'true',
     smtpHost: payload.smtpHost?.trim() || '',
     smtpPort: payload.smtpPort?.trim() || '587',
     smtpUser: payload.smtpUser?.trim() || '',

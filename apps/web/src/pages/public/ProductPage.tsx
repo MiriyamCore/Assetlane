@@ -26,11 +26,18 @@ export function ProductPage({
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscountCode, setAppliedDiscountCode] = useState('');
+  const [discountMessage, setDiscountMessage] = useState('');
+  const [finalPriceCents, setFinalPriceCents] = useState<number | undefined>();
 
   useEffect(() => {
     if (!slug) return;
     apiFetch<Product>(`/products/slug/${slug}`)
-      .then(setProduct)
+      .then((loadedProduct) => {
+        setProduct(loadedProduct);
+        setFinalPriceCents(loadedProduct.priceCents);
+      })
       .catch((fetchError) => setError(fetchError.message))
       .finally(() => setLoading(false));
   }, [slug]);
@@ -48,6 +55,45 @@ export function ProductPage({
         setPaymentMethod('stripe');
       });
   }, []);
+
+  const isFreeProduct = product?.priceCents === 0;
+
+  const applyDiscount = async () => {
+    if (!product || !discountCode.trim()) {
+      setAppliedDiscountCode('');
+      setFinalPriceCents(product?.priceCents);
+      setDiscountMessage('');
+      return;
+    }
+
+    try {
+      const response = await apiFetch<{
+        code: string;
+        finalAmountCents: number;
+        discountAmountCents: number;
+      }>('/checkout/validate-discount', {
+        method: 'POST',
+        body: JSON.stringify({
+          productId: product.id,
+          discountCode,
+        }),
+      });
+
+      setAppliedDiscountCode(response.code);
+      setFinalPriceCents(response.finalAmountCents);
+      setDiscountMessage(
+        response.discountAmountCents > 0
+          ? `Discount applied. New total: ${(response.finalAmountCents / 100).toFixed(2)} ${product.currency}`
+          : 'Discount applied.',
+      );
+      setError('');
+    } catch (discountError) {
+      setAppliedDiscountCode('');
+      setFinalPriceCents(product.priceCents);
+      setDiscountMessage('');
+      setError(discountError instanceof Error ? discountError.message : 'Unable to apply discount code.');
+    }
+  };
 
   const handleCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,7 +114,8 @@ export function ProductPage({
           customerName,
           successUrl,
           cancelUrl,
-          paymentMethod,
+          paymentMethod: isFreeProduct || finalPriceCents === 0 ? undefined : paymentMethod,
+          discountCode: appliedDiscountCode || undefined,
         }),
       });
 
@@ -101,6 +148,15 @@ export function ProductPage({
   return (
     <ThemeProductProvider value={productContext}>
       <ThemePage
+        checkoutExtras={{
+          product,
+          discountCode,
+          onDiscountCodeChange: setDiscountCode,
+          onApplyDiscount: () => void applyDiscount(),
+          discountMessage,
+          finalPriceCents,
+          isFreeProduct,
+        }}
         customerEmail={customerEmail}
         customerName={customerName}
         error={error}
@@ -109,7 +165,7 @@ export function ProductPage({
         onCustomerNameChange={setCustomerName}
         onPaymentMethodChange={setPaymentMethod}
         paymentMethod={paymentMethod}
-        paymentMethods={paymentMethods}
+        paymentMethods={isFreeProduct || finalPriceCents === 0 ? [] : paymentMethods}
         product={product}
         settings={settings}
         submitting={submitting}

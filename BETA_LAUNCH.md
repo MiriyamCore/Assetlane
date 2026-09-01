@@ -60,7 +60,8 @@ Copy `.env.example` to `apps/api/.env` for local runs, or inject the same variab
 |----------|---------|-------|
 | `NODE_ENV` | `production` | API refuses to start without `JWT_SECRET` when set |
 | `JWT_SECRET` | 64+ char random string | `openssl rand -hex 32` |
-| `DATABASE_URL` | `file:./assetlane.db` | Keep on persistent volume |
+| `DATABASE_PROVIDER` | `sqlite` | `postgresql` in production |
+| `DATABASE_URL` | `file:./assetlane.db` | `postgresql://user:pass@host:5432/assetlane` for production |
 | `PORT` | `5001` | API listen port |
 | `FRONTEND_URL` | `https://yourdomain.com` | CORS + email link base |
 | `API_PUBLIC_URL` | `https://api.yourdomain.com` | bKash callback construction |
@@ -157,14 +158,27 @@ curl -s https://api.yourdomain.com/health
 # {"status":"ok"}
 ```
 
-Volumes `storage/` and `apps/api/assetlane.db` must survive container restarts.
+Volumes `storage/` must survive container restarts. With SQLite, also persist `apps/api/assetlane.db`. With PostgreSQL, persist the database volume or managed database backups.
 
 ### Option B — Process manager (Node on VPS)
+
+**SQLite (simple beta)**
 
 ```bash
 npm ci
 npm run prisma:generate
 npm run prisma:push
+npm run build
+```
+
+**PostgreSQL (recommended production)**
+
+```bash
+npm ci
+export DATABASE_PROVIDER=postgresql
+export DATABASE_URL=postgresql://user:pass@localhost:5432/assetlane
+npm run prisma:generate
+npm run prisma:migrate:deploy
 npm run build
 ```
 

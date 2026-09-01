@@ -4,7 +4,9 @@ import { ArrowLeft, ArrowRight, LoaderCircle, Save } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MarkdownField } from '../../components/admin/MarkdownField';
 import { apiFetch } from '../../lib/api';
+import { STORE_CURRENCY_LABELS, normalizeStoreCurrency } from '../../lib/currency';
 import { emptyProductForm, parseTagsInput, productToFormState } from '../../lib/product-form';
+import { buildEmbedScriptSnippet } from '../../lib/embed-snippet';
 import type { Product, ProductFormState } from '../../types/store';
 import { InlineError } from '../../components/ui/States';
 
@@ -19,11 +21,13 @@ export function ProductEditorPage({
   mode,
   product,
   defaultCurrency,
+  storeUrl,
   onSaved,
 }: {
   mode: 'create' | 'edit';
   product?: Product | null;
   defaultCurrency: string;
+  storeUrl: string;
   onSaved: () => Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -36,6 +40,7 @@ export function ProductEditorPage({
     setForm(product ? productToFormState(product) : emptyProductForm(defaultCurrency));
   }, [product, defaultCurrency]);
 
+  const storeCurrency = normalizeStoreCurrency(defaultCurrency);
   const currentStep = steps[step] || steps[0];
 
   const nextStep = () => {
@@ -44,8 +49,8 @@ export function ProductEditorPage({
       return;
     }
 
-    if (step === 1 && (!form.priceCents || !form.currency)) {
-      setError('Price and currency are required before continuing.');
+    if (step === 1 && !form.priceCents) {
+      setError('Price is required before continuing.');
       return;
     }
 
@@ -71,7 +76,7 @@ export function ProductEditorPage({
       formData.append('description', form.description);
       formData.append('tags', JSON.stringify(parseTagsInput(form.tags)));
       formData.append('priceCents', form.priceCents);
-      formData.append('currency', form.currency);
+      formData.append('currency', storeCurrency);
       formData.append('status', form.status);
       formData.append('version', form.version);
       formData.append('changelog', form.changelog);
@@ -81,6 +86,7 @@ export function ProductEditorPage({
       if (form.featuredImage) formData.append('featuredImage', form.featuredImage);
       form.galleryImages.forEach((image) => formData.append('galleryImages', image));
       if (form.digitalFile) formData.append('digitalFile', form.digitalFile);
+      form.digitalFiles.forEach((file) => formData.append('digitalFiles', file));
 
       const path = mode === 'edit' && product ? `/products/${product.id}` : '/products';
       await apiFetch(path, {
@@ -137,10 +143,12 @@ export function ProductEditorPage({
               <label>
                 Price in cents
                 <input value={form.priceCents} onChange={(event) => setForm({ ...form, priceCents: event.target.value })} required />
+                <small>Use 0 for free products.</small>
               </label>
               <label>
-                Currency
-                <input value={form.currency} onChange={(event) => setForm({ ...form, currency: event.target.value.toUpperCase() })} required />
+                Store currency
+                <input readOnly value={STORE_CURRENCY_LABELS[storeCurrency]} />
+                <small>Change under Settings → Delivery.</small>
               </label>
               <label>
                 Status
@@ -174,7 +182,12 @@ export function ProductEditorPage({
               <input type="file" accept="image/*" multiple onChange={(event) => setForm({ ...form, galleryImages: Array.from(event.target.files || []) })} />
             </label>
             <label>
-              Private digital file
+              Private digital files
+              <input type="file" multiple onChange={(event) => setForm({ ...form, digitalFiles: Array.from(event.target.files || []) })} />
+              <small>First file becomes the primary download. Additional files are bundled with the purchase.</small>
+            </label>
+            <label>
+              Replace primary digital file
               <input type="file" onChange={(event) => setForm({ ...form, digitalFile: event.target.files?.[0] || null })} />
             </label>
             <div className="upload-summary">
@@ -187,8 +200,14 @@ export function ProductEditorPage({
                 <span>{form.galleryImages.length > 0 ? `${form.galleryImages.length} selected` : `${product?.galleryImageUrls.length || 0} existing`}</span>
               </div>
               <div>
-                <strong>Digital file</strong>
-                <span>{form.digitalFile?.name || product?.digitalFileName || 'Not set'}</span>
+                <strong>Digital files</strong>
+                <span>
+                  {form.digitalFiles.length > 0
+                    ? `${form.digitalFiles.length} new file(s) selected`
+                    : product?.files?.length
+                      ? `${product.files.length} existing`
+                      : product?.digitalFileName || 'Not set'}
+                </span>
               </div>
             </div>
           </div>
@@ -211,8 +230,15 @@ export function ProductEditorPage({
               <strong>{form.title || 'Untitled product'}</strong>
               <span>{form.summary || 'No summary yet'}</span>
               <span>{parseTagsInput(form.tags).length ? parseTagsInput(form.tags).join(', ') : 'No tags added'}</span>
-              <span>{form.priceCents ? `${Number(form.priceCents) / 100} ${form.currency}` : 'Price not set'}</span>
+              <span>{form.priceCents ? `${Number(form.priceCents) / 100} ${storeCurrency}` : 'Price not set'}</span>
             </div>
+            {mode === 'edit' && product?.slug ? (
+              <div className="settings-note-card embed-snippet-block">
+                <strong>Embed checkout snippet</strong>
+                <span>Paste this on an external site that is listed under Settings → Distribution → Embed allowed origins.</span>
+                <pre>{buildEmbedScriptSnippet(storeUrl, product.slug)}</pre>
+              </div>
+            ) : null}
           </div>
         );
 
@@ -232,6 +258,7 @@ export function ProductEditorPage({
         {steps.map((item, index) => (
           <button
             key={item.title}
+            aria-current={index === step ? 'step' : undefined}
             className={index === step ? 'editor-nav-item active' : 'editor-nav-item'}
             type="button"
             onClick={() => {
@@ -246,6 +273,9 @@ export function ProductEditorPage({
 
       <div className="editor-panel-main">
         <header className="editor-panel-header">
+          <p className="editor-step-progress">
+            Step {step + 1} of {steps.length}
+          </p>
           <h2>{currentStep.title}</h2>
           <p>{currentStep.description}</p>
         </header>

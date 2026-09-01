@@ -84,14 +84,32 @@ export function ErrorPanel({
   );
 }
 
-export function SuccessPanel({ title, message, detail }: { title: string; message: string; detail?: string }) {
+export function SuccessPanel({
+  title,
+  message,
+  detail,
+  downloadUrl,
+  pending,
+}: {
+  title: string;
+  message: string;
+  detail?: string;
+  downloadUrl?: string;
+  pending?: boolean;
+}) {
   return (
     <div className="panel centered-panel success-panel">
       <Check size={22} />
       <h2>{title}</h2>
       <p>{message}</p>
       {detail ? <span className="support-chip">{detail}</span> : null}
-      <Link className="primary-link" to="/">
+      {pending ? <span className="support-chip">Confirming payment…</span> : null}
+      {downloadUrl ? (
+        <a className="primary-link" href={downloadUrl}>
+          Open secure download
+        </a>
+      ) : null}
+      <Link className={downloadUrl ? 'secondary-link' : 'primary-link'} to="/">
         Back to storefront
       </Link>
     </div>
