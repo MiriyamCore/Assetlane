@@ -53,6 +53,7 @@ Configure Stripe, bKash, and SMTP in **Admin → Settings** after setup. For loc
 **Store management**
 - First-boot setup wizard
 - Single-admin authentication (HTTP-only cookies, bcrypt passwords)
+- Team accounts with owner, admin, and viewer roles (**Settings → Team**)
 - Product CRUD with draft, published, and archived states
 - Custom product attributes (label/value specs shown on product pages)
 - Private file storage for digital products and product images
@@ -79,7 +80,7 @@ Configure Stripe, bKash, and SMTP in **Admin → Settings** after setup. For loc
 **Distribution**
 - Public storefront with theme support
 - Headless API (`/api/v1`) for external frontends
-- JavaScript embed widget (`/embed.js`)
+- JavaScript embed widget (`/embed.js`) with checkout analytics hooks
 - Store modes: full storefront, headless, or hybrid
 
 **Themes**

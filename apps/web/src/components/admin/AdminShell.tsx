@@ -107,7 +107,10 @@ export function AdminShell({
             {!isFocusPage ? <p>{meta.description}</p> : null}
           </div>
           <div className="admin-topbar-actions">
-            <span className="admin-user-chip">{user.email}</span>
+            <span className="admin-user-chip">
+              {user.email}
+              {user.role === 'viewer' ? ' · viewer' : user.role === 'owner' ? ' · owner' : ''}
+            </span>
             <button className="secondary-button" type="button" onClick={onRefresh}>
               <RefreshCcw size={15} />
               <span>Refresh</span>

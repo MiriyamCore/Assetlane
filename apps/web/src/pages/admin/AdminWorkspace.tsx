@@ -175,6 +175,7 @@ export function AdminWorkspace({
   } else if (adminPath === 'settings') {
     content = (
       <StoreSettingsPage
+        currentUser={user}
         products={products}
         storeUrl={adminSettings.storeUrl || settings.storeUrl}
         themes={themes}

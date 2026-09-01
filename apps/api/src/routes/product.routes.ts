@@ -12,7 +12,7 @@ import {
   updateProduct,
   updateProductStatus,
 } from '../controllers/product.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireWriteAccess } from '../middleware/auth.middleware';
 import { digitalStorageRoot, ensureStorageDirectories, imageStorageRoot, sanitizeFilename } from '../lib/storage';
 
 ensureStorageDirectories();
@@ -45,6 +45,7 @@ router.get('/:id', getProductById);
 router.post(
   '/',
   authenticate,
+  requireWriteAccess,
   upload.fields([
     { name: 'featuredImage', maxCount: 1 },
     { name: 'galleryImages', maxCount: 6 },
@@ -57,6 +58,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
+  requireWriteAccess,
   upload.fields([
     { name: 'featuredImage', maxCount: 1 },
     { name: 'galleryImages', maxCount: 6 },
@@ -66,7 +68,7 @@ router.put(
   updateProduct
 );
 
-router.patch('/:id/status', authenticate, updateProductStatus);
-router.delete('/:id', authenticate, deleteProduct);
+router.patch('/:id/status', authenticate, requireWriteAccess, updateProductStatus);
+router.delete('/:id', authenticate, requireWriteAccess, deleteProduct);
 
 export default router;

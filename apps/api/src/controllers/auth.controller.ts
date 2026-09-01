@@ -28,6 +28,7 @@ export const register = async (req: Request, res: Response) => {
       data: {
         email: email.trim().toLowerCase(),
         password: passwordHash,
+        role: 'owner',
       },
     });
 
@@ -38,6 +39,7 @@ export const register = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -74,6 +76,7 @@ export const login = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -95,7 +98,7 @@ export const getMe = async (req: Request & { user?: { id: string } }, res: Respo
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true },
+      select: { id: true, email: true, role: true },
     });
 
     return res.json({ user });

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { getAdminSettings, getAvailableThemes, getPublicSettings, postTestEmail, updateBrandingAssets, updateSettings } from '../controllers/settings.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireWriteAccess } from '../middleware/auth.middleware';
 import { requireSetupComplete } from '../middleware/setup.middleware';
 import { brandingStorageRoot, ensureStorageDirectories, sanitizeFilename } from '../lib/storage';
 
@@ -25,8 +25,8 @@ const upload = multer({ storage });
 router.get('/', getPublicSettings);
 router.get('/themes', getAvailableThemes);
 router.get('/admin', authenticate, requireSetupComplete, getAdminSettings);
-router.put('/', authenticate, requireSetupComplete, updateSettings);
-router.post('/test-email', authenticate, requireSetupComplete, postTestEmail);
-router.put('/branding', authenticate, requireSetupComplete, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }, { name: 'heroImage', maxCount: 1 }]), updateBrandingAssets);
+router.put('/', authenticate, requireSetupComplete, requireWriteAccess, updateSettings);
+router.post('/test-email', authenticate, requireSetupComplete, requireWriteAccess, postTestEmail);
+router.put('/branding', authenticate, requireSetupComplete, requireWriteAccess, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }, { name: 'heroImage', maxCount: 1 }]), updateBrandingAssets);
 
 export default router;

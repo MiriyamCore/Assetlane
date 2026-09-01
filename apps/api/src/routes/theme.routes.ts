@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { downloadTheme, getAdminThemes, installTheme, uninstallTheme } from '../controllers/theme.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireWriteAccess } from '../middleware/auth.middleware';
 import { ensureStorageDirectories, sanitizeFilename, themeUploadRoot } from '../lib/storage';
 
 ensureStorageDirectories();
@@ -33,8 +33,8 @@ const upload = multer({
 const router = Router();
 
 router.get('/admin', authenticate, getAdminThemes);
-router.post('/install', authenticate, upload.single('themePackage'), installTheme);
-router.delete('/:id', authenticate, uninstallTheme);
+router.post('/install', authenticate, requireWriteAccess, upload.single('themePackage'), installTheme);
+router.delete('/:id', authenticate, requireWriteAccess, uninstallTheme);
 router.get('/:id/download', authenticate, downloadTheme);
 
 export default router;

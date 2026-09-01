@@ -1689,6 +1689,90 @@
   margin-bottom: 10px;
 }
 
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 12, 18, 0.72);
+}
+
+.confirm-dialog {
+  width: min(100%, 460px);
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: var(--admin-muted);
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.team-manager {
+  display: grid;
+  gap: 16px;
+}
+
+.team-member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.team-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-panel);
+}
+
+.team-member-row strong {
+  display: block;
+}
+
+.team-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-invite-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-panel);
+}
+
+.team-invite-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .product-attributes-editor {
   display: grid;
   gap: 12px;

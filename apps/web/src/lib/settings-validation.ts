@@ -24,56 +24,62 @@ const isValidPositiveInteger = (value: string) => {
   return Number.isFinite(parsed) && parsed > 0;
 };
 
-export const validateSettingsForm = (form: SettingsMap): string[] => {
+export const validateSettingsForm = (form: SettingsMap, fields?: string[]): string[] => {
   const errors: string[] = [];
+  const shouldValidate = (key: string) => !fields || fields.includes(key);
 
-  if (!form.storeName?.trim()) {
+  if (shouldValidate('storeName') && !form.storeName?.trim()) {
     errors.push('Store name is required.');
   }
 
-  if (!isValidEmail(form.supportEmail || '')) {
+  if (shouldValidate('supportEmail') && !isValidEmail(form.supportEmail || '')) {
     errors.push('Support email must be a valid email address.');
   }
 
-  if (!isValidUrl(form.storeUrl || '')) {
+  if (shouldValidate('storeUrl') && !isValidUrl(form.storeUrl || '')) {
     errors.push('Store URL must be a valid http or https link.');
   }
 
-  if (!isValidColor(form.brandPrimaryColor || '')) {
+  if (shouldValidate('brandPrimaryColor') && !isValidColor(form.brandPrimaryColor || '')) {
     errors.push('Primary brand color must be a valid hex color.');
   }
 
-  if (!isValidColor(form.brandSecondaryColor || '')) {
+  if (shouldValidate('brandSecondaryColor') && !isValidColor(form.brandSecondaryColor || '')) {
     errors.push('Secondary brand color must be a valid hex color.');
   }
 
-  if (!isValidPositiveInteger(form.downloadExpiryDays || '')) {
+  if (shouldValidate('downloadExpiryDays') && !isValidPositiveInteger(form.downloadExpiryDays || '')) {
     errors.push('Download expiry days must be a positive number.');
   }
 
-  if (!isValidPositiveInteger(form.downloadLimit || '')) {
+  if (shouldValidate('downloadLimit') && !isValidPositiveInteger(form.downloadLimit || '')) {
     errors.push('Download limit must be a positive number.');
   }
 
-  if (form.defaultCurrency && !isStoreCurrency(form.defaultCurrency)) {
+  if (shouldValidate('defaultCurrency') && form.defaultCurrency && !isStoreCurrency(form.defaultCurrency)) {
     errors.push('Store currency must be one of BDT, USD, EUR, or GBP.');
   }
 
-  for (const [label, value] of [
-    ['Terms URL', form.termsUrl],
-    ['Privacy URL', form.privacyUrl],
-    ['Announcement URL', form.announcementUrl],
-    ['Website link', form.socialWebsite],
-    ['Twitter link', form.socialTwitter],
-    ['Instagram link', form.socialInstagram],
-    ['YouTube link', form.socialYoutube],
+  for (const [label, key] of [
+    ['Terms URL', 'termsUrl'],
+    ['Privacy URL', 'privacyUrl'],
+    ['Announcement URL', 'announcementUrl'],
+    ['Website link', 'socialWebsite'],
+    ['Twitter link', 'socialTwitter'],
+    ['Instagram link', 'socialInstagram'],
+    ['YouTube link', 'socialYoutube'],
   ] as const) {
-    if (!isValidUrl(value || '')) {
+    if (shouldValidate(key) && !isValidUrl(form[key] || '')) {
       errors.push(`${label} must be a valid http or https link.`);
     }
   }
 
-  if ((form.announcementUrl || '').trim() && !(form.announcementText || '').trim()) {
+  if (
+    shouldValidate('announcementUrl') &&
+    shouldValidate('announcementText') &&
+    (form.announcementUrl || '').trim() &&
+    !(form.announcementText || '').trim()
+  ) {
     errors.push('Announcement text is required when an announcement link is set.');
   }
 

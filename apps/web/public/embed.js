@@ -10,6 +10,43 @@
 
   var apiBase = storeUrl + '/api';
   var defaultProduct = SCRIPT.getAttribute('data-product') || '';
+  var analyticsEnabled = SCRIPT.getAttribute('data-analytics') !== 'false';
+
+  function createAnalyticsBus() {
+    var listeners = {};
+
+    return {
+      on: function (eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      },
+      emit: function (eventName, detail) {
+        if (!analyticsEnabled) {
+          return;
+        }
+
+        if (typeof window.CustomEvent === 'function') {
+          window.dispatchEvent(new CustomEvent(eventName, { detail: detail }));
+        }
+
+        (listeners[eventName] || []).forEach(function (callback) {
+          try {
+            callback(detail);
+          } catch (error) {
+            console.error('[AssetLane] analytics listener failed', error);
+          }
+        });
+      },
+    };
+  }
+
+  if (!window.AssetLaneEmbed) {
+    window.AssetLaneEmbed = createAnalyticsBus();
+  }
+
+  var analytics = window.AssetLaneEmbed;
 
   function formatMoney(cents, currency) {
     try {
@@ -36,7 +73,7 @@
     document.head.appendChild(style);
   }
 
-  function renderWidget(host, product) {
+  function renderWidget(host, product, slug) {
     injectStyles();
     host.innerHTML = '';
     host.classList.add('assetlane-embed');
@@ -93,6 +130,13 @@
       button.disabled = true;
       error.hidden = true;
 
+      analytics.emit('assetlane:checkout-start', {
+        slug: slug,
+        product: product,
+        customerEmail: emailInput.value,
+        customerName: nameInput.value || null,
+      });
+
       fetch(apiBase + '/checkout/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,9 +155,19 @@
           });
         })
         .then(function (payload) {
+          analytics.emit('assetlane:checkout-redirect', {
+            slug: slug,
+            product: product,
+            checkoutUrl: payload.url,
+          });
           if (payload.url) window.location.href = payload.url;
         })
         .catch(function (err) {
+          analytics.emit('assetlane:checkout-error', {
+            slug: slug,
+            product: product,
+            message: err.message || 'Unable to start checkout.',
+          });
           error.textContent = err.message || 'Unable to start checkout.';
           error.hidden = false;
           button.disabled = false;
@@ -138,9 +192,17 @@
         });
       })
       .then(function (product) {
-        renderWidget(host, product);
+        analytics.emit('assetlane:product-loaded', {
+          slug: slug,
+          product: product,
+        });
+        renderWidget(host, product, slug);
       })
       .catch(function (err) {
+        analytics.emit('assetlane:product-error', {
+          slug: slug,
+          message: err.message || 'Unable to load product.',
+        });
         host.textContent = err.message || 'Unable to load product.';
       });
   }

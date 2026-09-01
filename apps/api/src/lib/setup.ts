@@ -69,6 +69,7 @@ export const completeSetup = async (payload: SetupPayload) => {
     data: {
       email,
       password: passwordHash,
+      role: 'owner',
     },
   });
 

@@ -10,6 +10,10 @@ Living log of product improvements, fixes, and planned work. Update when shippin
 
 | ID | Type | Summary |
 |----|------|---------|
+| F-024 | Feature | **Team roles** — owner/admin/viewer accounts with team management in Settings → Team |
+| F-025 | UX | **Per-section settings save** — save only the active settings section |
+| F-026 | UX | **Theme uninstall dialog** — confirmation modal with active-theme warning |
+| F-027 | Feature | **Embed analytics hooks** — `assetlane:*` events and `AssetLaneEmbed.on()` callbacks |
 | F-023 | Feature | **Product attributes** — merchant-defined label/value specs on product pages (product editor → storefront) |
 | F-022 | Feature | **Discount codes** — percent or fixed amount off at checkout; admin CRUD |
 | F-021 | Feature | **Free products** — price `0` skips payment and delivers immediately |
@@ -50,12 +54,7 @@ _None._
 
 ## Planned — medium priority
 
-| ID | Type | Summary |
-|----|------|---------|
-| M-003 | Feature | Multi-admin / team roles |
-| M-004 | UX | Settings section save (per-section) instead of full-form save |
-| M-005 | UX | Theme uninstall confirmation dialog |
-| M-006 | Feature | Embed analytics hooks |
+_None._
 
 ---
 

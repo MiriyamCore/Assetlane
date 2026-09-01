@@ -4,31 +4,27 @@ import { Download, LoaderCircle, Save, Trash2, Upload, ArrowLeft } from 'lucide-
 import { Link } from 'react-router-dom';
 import { BODY_FONT_PRESETS, HEADING_FONT_PRESETS } from '@assetlane/theme-sdk';
 import { AnnouncementPreview } from '../../components/storefront/AnnouncementBar';
+import { TeamManager } from '../../components/admin/TeamManager';
 import { WebhooksManager } from './WebhooksManager';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { buildEmbedScriptSnippet } from '../../lib/embed-snippet';
 import { apiFetch } from '../../lib/api';
 import { STORE_CURRENCIES, STORE_CURRENCY_LABELS, normalizeStoreCurrency } from '../../lib/currency';
 import { settingsFields } from '../../lib/product-form';
+import {
+  buildSectionSettingsPayload,
+  sectionHasSaveAction,
+  settingsSectionSaveLabel,
+  validateSettingsSection,
+  type SettingsSectionId,
+} from '../../lib/settings-sections';
 import { getSettingsFieldMeta, settingsFieldHelp } from '../../lib/settings-fields';
-import { validateSettingsForm } from '../../lib/settings-validation';
-import type { HomepageMode, Product, SettingsMap, StoreTheme } from '../../types/store';
+import type { AuthUser, HomepageMode, Product, SettingsMap, StoreTheme } from '../../types/store';
 import { InlineError, SuccessInline } from '../../components/ui/States';
 
-type SettingsSectionId =
-  | 'branding'
-  | 'themes'
-  | 'store'
-  | 'payments'
-  | 'distribution'
-  | 'storefront'
-  | 'content'
-  | 'promotion'
-  | 'social'
-  | 'policies'
-  | 'delivery'
-  | 'email';
+type SettingsSectionNavId = Exclude<SettingsSectionId, 'team'>;
 
-const settingsSections: { id: SettingsSectionId; label: string; description: string }[] = [
+const settingsSections: { id: SettingsSectionNavId | 'team'; label: string; description: string }[] = [
   { id: 'branding', label: 'Branding', description: 'Logo, colors, typography, and hero copy' },
   { id: 'themes', label: 'Themes', description: 'Install and activate storefront themes' },
   { id: 'store', label: 'Store', description: 'Name, mode, and support details' },
@@ -41,6 +37,7 @@ const settingsSections: { id: SettingsSectionId; label: string; description: str
   { id: 'policies', label: 'Policies', description: 'Footer and legal pages' },
   { id: 'delivery', label: 'Delivery', description: 'Currency and download rules' },
   { id: 'email', label: 'Email', description: 'SMTP for purchase receipts' },
+  { id: 'team', label: 'Team', description: 'Invite admins and viewers' },
 ];
 
 export function StoreSettingsPage({
@@ -48,6 +45,7 @@ export function StoreSettingsPage({
   storeUrl,
   products,
   themes,
+  currentUser,
   onInstallTheme,
   onDownloadTheme,
   onRemoveTheme,
@@ -58,6 +56,7 @@ export function StoreSettingsPage({
   storeUrl: string;
   products: Product[];
   themes: StoreTheme[];
+  currentUser: AuthUser;
   onInstallTheme: (file: File) => Promise<string[] | undefined>;
   onDownloadTheme: (theme: StoreTheme) => void;
   onRemoveTheme: (theme: StoreTheme) => Promise<void>;
@@ -86,6 +85,8 @@ export function StoreSettingsPage({
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('branding');
   const [testEmailTo, setTestEmailTo] = useState('');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [themePendingRemoval, setThemePendingRemoval] = useState<StoreTheme | null>(null);
+  const canWrite = currentUser.role !== 'viewer';
 
   useEffect(() => {
     setForm(settings);
@@ -133,11 +134,15 @@ export function StoreSettingsPage({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canWrite || !sectionHasSaveAction(activeSection)) {
+      return;
+    }
+
     setSaving(true);
     setSuccessMessage('');
     setError('');
 
-    const validationErrors = validateSettingsForm(form);
+    const validationErrors = validateSettingsSection(activeSection, form);
     if (validationErrors.length > 0) {
       setError(validationErrors[0] ?? 'Please fix the highlighted settings before saving.');
       setSaving(false);
@@ -145,8 +150,12 @@ export function StoreSettingsPage({
     }
 
     try {
-      await onSaved(form);
-      if (logoFile || faviconFile || heroImageFile || removeLogo || removeFavicon || removeHeroImage) {
+      const nextSettings = buildSectionSettingsPayload(activeSection, settings, form);
+      await onSaved(nextSettings);
+      if (
+        activeSection === 'branding' &&
+        (logoFile || faviconFile || heroImageFile || removeLogo || removeFavicon || removeHeroImage)
+      ) {
         await onSaveBrandingAssets({
           favicon: faviconFile,
           logo: logoFile,
@@ -162,7 +171,7 @@ export function StoreSettingsPage({
         setRemoveFavicon(false);
         setRemoveHeroImage(false);
       }
-      setSuccessMessage('Store settings saved.');
+      setSuccessMessage(`${settingsSections.find((section) => section.id === activeSection)?.label || 'Settings'} saved.`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to save settings.');
     } finally {
@@ -210,11 +219,16 @@ export function StoreSettingsPage({
     }
   };
 
-  const removeTheme = async (theme: StoreTheme) => {
-    if (!window.confirm(`Delete the "${theme.title}" theme package?`)) {
+  const removeTheme = (theme: StoreTheme) => {
+    setThemePendingRemoval(theme);
+  };
+
+  const confirmRemoveTheme = async () => {
+    if (!themePendingRemoval) {
       return;
     }
 
+    const theme = themePendingRemoval;
     setBusyThemeId(theme.id);
     setSuccessMessage('');
     setError('');
@@ -228,6 +242,7 @@ export function StoreSettingsPage({
         }));
       }
       setSuccessMessage('Theme package deleted.');
+      setThemePendingRemoval(null);
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : 'Unable to delete theme package.');
     } finally {
@@ -547,7 +562,7 @@ export function StoreSettingsPage({
                         </button>
                       ) : null}
                       {theme.source === 'package' ? (
-                        <button className="secondary-button danger-button" disabled={busyThemeId === theme.id} type="button" onClick={() => void removeTheme(theme)}>
+                        <button className="secondary-button danger-button" disabled={busyThemeId === theme.id || !canWrite} type="button" onClick={() => removeTheme(theme)}>
                           <Trash2 size={16} />
                           <span>{busyThemeId === theme.id ? 'Deleting...' : 'Delete theme'}</span>
                         </button>
@@ -646,6 +661,11 @@ export function StoreSettingsPage({
               <button className="secondary-button" type="button" onClick={() => void copyEmbedSnippet()}>
                 Copy snippet
               </button>
+              <small>
+                Analytics hooks: listen for <code>assetlane:product-loaded</code>, <code>assetlane:checkout-start</code>,{' '}
+                <code>assetlane:checkout-redirect</code>, and <code>assetlane:checkout-error</code> on <code>window</code>, or use{' '}
+                <code>window.AssetLaneEmbed.on(event, callback)</code>. Set <code>data-analytics="false"</code> on the script tag to disable.
+              </small>
             </div>
             <WebhooksManager />
           </>
@@ -772,7 +792,7 @@ export function StoreSettingsPage({
                   />
                 </label>
               </div>
-              <button className="secondary-button" disabled={sendingTestEmail} type="button" onClick={() => void sendTestEmail()}>
+              <button className="secondary-button" disabled={sendingTestEmail || !canWrite} type="button" onClick={() => void sendTestEmail()}>
                 {sendingTestEmail ? <LoaderCircle className="spin" size={16} /> : null}
                 <span>{sendingTestEmail ? 'Sending…' : 'Send test email'}</span>
               </button>
@@ -780,13 +800,38 @@ export function StoreSettingsPage({
           </>
         );
 
+      case 'team':
+        return <TeamManager currentUser={currentUser} />;
+
       default:
         return null;
     }
   };
 
+  const activeThemePendingRemoval = themePendingRemoval;
+  const isActiveThemePendingRemoval = activeThemePendingRemoval
+    ? form.storefrontTheme === activeThemePendingRemoval.id
+    : false;
+
   return (
-    <form className="settings-workspace" onSubmit={submit}>
+    <>
+      <ConfirmDialog
+        busy={Boolean(activeThemePendingRemoval && busyThemeId === activeThemePendingRemoval.id)}
+        confirmLabel="Delete theme"
+        message={
+          activeThemePendingRemoval
+            ? isActiveThemePendingRemoval
+              ? `"${activeThemePendingRemoval.title}" is your active storefront theme. Deleting it will switch the store back to the Canvas built-in theme. This cannot be undone.`
+              : `Delete "${activeThemePendingRemoval.title}" from this store? Buyers will no longer be able to use this uploaded theme package.`
+            : ''
+        }
+        open={Boolean(activeThemePendingRemoval)}
+        title="Delete theme package?"
+        onCancel={() => setThemePendingRemoval(null)}
+        onConfirm={() => void confirmRemoveTheme()}
+      />
+
+      <form className="settings-workspace" onSubmit={submit}>
       <nav aria-label="Settings sections" className="settings-nav">
         <Link className="settings-nav-back" to="/admin">
           <ArrowLeft size={14} />
@@ -817,13 +862,26 @@ export function StoreSettingsPage({
         <div className="settings-panel-body">{renderSectionContent()}</div>
 
         <footer className="settings-panel-footer">
-          <span className="settings-panel-footer-note">Changes apply across your storefront after saving.</span>
-          <button className="primary-button" disabled={saving} type="submit">
-            {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
-            <span>Save settings</span>
-          </button>
+          {!canWrite ? (
+            <span className="settings-panel-footer-note">Viewer accounts can browse settings but cannot save changes.</span>
+          ) : sectionHasSaveAction(activeSection) ? (
+            <>
+              <span className="settings-panel-footer-note">Only the fields in this section will be saved.</span>
+              <button className="primary-button" disabled={saving} type="submit">
+                {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
+                <span>{settingsSectionSaveLabel[activeSection] || 'Save section'}</span>
+              </button>
+            </>
+          ) : (
+            <span className="settings-panel-footer-note">
+              {activeSection === 'themes'
+                ? 'Theme actions save immediately when you activate, install, or delete a package.'
+                : 'Manage team access from this section. No additional save step is required.'}
+            </span>
+          )}
         </footer>
       </div>
     </form>
+    </>
   );
 }

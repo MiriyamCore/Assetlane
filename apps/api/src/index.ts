@@ -12,6 +12,7 @@ import purchaseRoutes from './routes/purchase.routes';
 import settingsRoutes from './routes/settings.routes';
 import setupRoutes from './routes/setup.routes';
 import statsRoutes from './routes/stats.routes';
+import teamRoutes from './routes/team.routes';
 import themeRoutes from './routes/theme.routes';
 import v1Routes from './routes/v1.routes';
 import webhookRoutes from './routes/webhook.routes';
@@ -22,6 +23,7 @@ import { createCorsMiddleware } from './lib/cors';
 import { authRateLimiter, checkoutRateLimiter, downloadRateLimiter } from './middleware/security';
 import { requireSetupComplete } from './middleware/setup.middleware';
 import { PRODUCT_NAME } from './lib/platform';
+import prisma from './lib/prisma';
 
 dotenv.config();
 
@@ -34,6 +36,23 @@ const port = Number.parseInt(process.env.PORT || '5001', 10);
 
 ensureStorageDirectories();
 void ensureDefaultSettings();
+
+const ensureOwnerRole = async () => {
+  const ownerCount = await prisma.user.count({ where: { role: 'owner' } });
+  if (ownerCount > 0) {
+    return;
+  }
+
+  const firstUser = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+  if (firstUser) {
+    await prisma.user.update({
+      where: { id: firstUser.id },
+      data: { role: 'owner' },
+    });
+  }
+};
+
+void ensureOwnerRole();
 
 app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), handleWebhook);
 
@@ -62,6 +81,7 @@ app.use('/api/products', requireSetupComplete, productRoutes);
 app.use('/api/purchases', requireSetupComplete, purchaseRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/stats', requireSetupComplete, statsRoutes);
+app.use('/api/team', requireSetupComplete, teamRoutes);
 app.use('/api/themes', requireSetupComplete, themeRoutes);
 app.use('/api/webhooks', requireSetupComplete, webhookRoutes);
 app.use('/theme-assets', express.static(themeInstallRoot));

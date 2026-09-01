@@ -184,9 +184,19 @@ export type StatsPayload = {
   }>;
 };
 
+export type UserRole = 'owner' | 'admin' | 'viewer';
+
 export type AuthUser = {
   id: string;
   email: string;
+  role: UserRole;
+};
+
+export type TeamMember = {
+  id: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
 };
 
 export type SettingsMap = Record<string, string>;
