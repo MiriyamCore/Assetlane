@@ -55,18 +55,20 @@ Configure Stripe, bKash, and SMTP in **Admin → Settings** after setup. For loc
 - Single-admin authentication (HTTP-only cookies, bcrypt passwords)
 - Product CRUD with draft, published, and archived states
 - Private file storage for digital products and product images
+- Branding, typography, hero image, FAQ, and trust blocks from admin settings
+- Discount code management (**Admin → Discounts**)
 
 **Commerce**
 - Stripe Checkout for card payments
-- bKash Tokenized Checkout for BDT-priced products
+- bKash Tokenized Checkout when store currency is BDT
 - Global store currency (BDT default; USD, EUR, GBP)
 - Discount codes at checkout
 - Free products with instant delivery
-- Purchase tracking, refunds, and download history
+- Purchase tracking, admin refunds, and download history
 - Configurable download expiry and download count limits
 - Multiple downloadable files per product
-- Customer purchase library (magic-link access)
-- Outbound webhooks for paid/refunded orders
+- Customer purchase library at `/library` (magic-link email access)
+- Outbound webhooks (`order.paid`, `order.refunded`) — **Settings → Distribution**
 
 **Delivery**
 - Secure download tokens (not publicly guessable)
@@ -130,6 +132,15 @@ POST https://<api-host>/api/webhooks/stripe
 ```
 
 Events: `checkout.session.completed`, `checkout.session.expired`, `charge.refunded`.
+
+### Outbound webhooks (integrations)
+
+Configure merchant webhooks in **Admin → Settings → Distribution**. AssetLane signs payloads with HMAC SHA-256 (`X-Assetlane-Signature`) and sends:
+
+- `order.paid`
+- `order.refunded`
+
+Use these to connect Zapier, Make, custom backends, or email marketing tools.
 
 ### Payment delivery flow
 

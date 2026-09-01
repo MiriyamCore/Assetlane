@@ -76,3 +76,4 @@ _None._
 2. Move to **In progress** when starting.
 3. Move to **Shipped** with date when merged.
 4. Link PR or commit in the summary when useful.
+5. Update [README.md](README.md) **Capabilities** when the feature is merchant-visible.

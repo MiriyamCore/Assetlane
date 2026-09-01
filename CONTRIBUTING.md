@@ -59,6 +59,19 @@ Preserve this layout. Place new code in the appropriate workspace rather than ad
 - Keep user-facing copy consistent with **AssetLane** (product) and **Miriyam Core** (company).
 - Do not commit secrets, local databases, or uploaded files.
 
+## Documentation
+
+When you ship a user-facing feature or change merchant-facing behavior, update docs in the same PR:
+
+| Change type | Update |
+|-------------|--------|
+| New capability or admin surface | [README.md](README.md) **Capabilities** section |
+| Planned or shipped work | [FEATURE_TRACK.md](FEATURE_TRACK.md) |
+| Deployment / env / webhooks | [BETA_LAUNCH.md](BETA_LAUNCH.md) and [`.env.example`](.env.example) |
+| Theme or headless API contract | [THEMES.md](THEMES.md) |
+
+The README is the first place new merchants look — keep it accurate when adding features.
+
 ## Pull requests
 
 Include in your PR description:
