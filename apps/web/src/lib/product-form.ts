@@ -1,4 +1,4 @@
-import type { Product, ProductFormState, PublicSettings } from '../types/store';
+import type { Product, ProductAttribute, ProductFormState, PublicSettings } from '../types/store';
 import { defaultStoreThemeId } from '../storefront/catalog';
 import { DEFAULT_STORE_CURRENCY } from './currency';
 
@@ -140,6 +140,7 @@ export const emptyProductForm = (currency: string): ProductFormState => ({
   changelog: '',
   seoTitle: '',
   metaDescription: '',
+  attributes: [],
   featuredImage: null,
   galleryImages: [],
   digitalFile: null,
@@ -165,6 +166,7 @@ export const productToFormState = (product: Product): ProductFormState => ({
   changelog: product.changelog || '',
   seoTitle: product.seoTitle || '',
   metaDescription: product.metaDescription || '',
+  attributes: product.attributes || [],
   featuredImage: null,
   galleryImages: [],
   digitalFile: null,

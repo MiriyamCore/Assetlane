@@ -3,12 +3,14 @@ import type { Product } from '@prisma/client';
 export type ProductDownloadFile = {
   id: string;
   fileName: string;
+  label: string | null;
   sortOrder: number;
 };
 
 type ListedProductFile = {
   id: string;
   fileName: string;
+  label?: string | null;
   sortOrder: number;
 };
 
@@ -31,6 +33,7 @@ export const listProductDownloadFiles = (product: ProductWithListedFiles) => {
     files.push({
       id: 'primary',
       fileName: product.digitalFileName,
+      label: null,
       sortOrder: -1,
     });
   }
@@ -39,6 +42,7 @@ export const listProductDownloadFiles = (product: ProductWithListedFiles) => {
     files.push({
       id: file.id,
       fileName: file.fileName,
+      label: file.label || null,
       sortOrder: file.sortOrder,
     });
   }
@@ -68,3 +72,6 @@ export const resolveProductFilePath = (product: ProductWithStoredFiles, fileId: 
     fileName: match.fileName,
   };
 };
+
+export const displayFileName = (file: Pick<ProductDownloadFile, 'fileName' | 'label'>) =>
+  file.label?.trim() || file.fileName;

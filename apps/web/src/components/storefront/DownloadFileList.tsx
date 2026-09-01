@@ -16,7 +16,7 @@ export function DownloadFileList({ payload, token }: { payload: DownloadPayload;
     <div className="download-file-list">
       {files.map((file) => (
         <a key={file.id} className="primary-link" href={`${API_ROOT}/downloads/${token}/file/${file.id}`}>
-          <span>{file.fileName}</span>
+          <span>{file.label?.trim() || file.fileName}</span>
         </a>
       ))}
     </div>

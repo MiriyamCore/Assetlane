@@ -9,6 +9,7 @@ import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedPr
 import { InlineError } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
+import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { API_ROOT } from '../../lib/api';
 import { formatMoney } from '../../lib/format';
 import type {
@@ -120,6 +121,7 @@ function PaperProductPage({
             <h3>Overview</h3>
             <SafeMarkdown content={product.description} />
           </div>
+          <ProductSpecsSection attributes={product.attributes || []} />
           {product.changelog ? (
             <div className="rich-panel">
               <h3>Release notes</h3>

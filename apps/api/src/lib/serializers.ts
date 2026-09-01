@@ -1,4 +1,5 @@
 import { ProductStatus, PurchaseStatus } from '@prisma/client';
+import { parseProductAttributes } from './product-attributes';
 import { listProductDownloadFiles } from './product-files';
 
 export const serializeProduct = (product: {
@@ -8,6 +9,7 @@ export const serializeProduct = (product: {
   summary: string;
   description: string;
   tags: unknown;
+  attributes?: unknown;
   priceCents: number;
   currency: string;
   status: ProductStatus;
@@ -19,7 +21,7 @@ export const serializeProduct = (product: {
   galleryImagePaths: unknown;
   digitalFilePath?: string | null;
   digitalFileName: string | null;
-  files?: Array<{ id: string; fileName: string; sortOrder: number; filePath?: string }>;
+  files?: Array<{ id: string; fileName: string; label?: string | null; sortOrder: number; filePath?: string }>;
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
@@ -27,6 +29,7 @@ export const serializeProduct = (product: {
   ...product,
   price: product.priceCents / 100,
   tags: Array.isArray(product.tags) ? product.tags : [],
+  attributes: parseProductAttributes(product.attributes),
   galleryImagePaths: Array.isArray(product.galleryImagePaths) ? product.galleryImagePaths : [],
   featuredImageUrl: product.featuredImagePath ? `/api/products/${product.id}/featured-image` : null,
   galleryImageUrls: Array.isArray(product.galleryImagePaths)
@@ -36,7 +39,7 @@ export const serializeProduct = (product: {
     id: product.id,
     digitalFilePath: product.digitalFilePath || null,
     digitalFileName: product.digitalFileName,
-    files: product.files as Array<{ id: string; fileName: string; sortOrder: number }> | undefined,
+    files: product.files as Array<{ id: string; fileName: string; label?: string | null; sortOrder: number }> | undefined,
   }),
 });
 

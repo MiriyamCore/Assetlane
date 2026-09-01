@@ -17,6 +17,7 @@ export type ThemeProduct = {
   summary: string;
   description: string;
   tags: string[];
+  attributes: Array<{ label: string; value: string }>;
   priceCents: number;
   price: number;
   currency: string;

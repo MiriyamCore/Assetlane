@@ -10,6 +10,7 @@ Living log of product improvements, fixes, and planned work. Update when shippin
 
 | ID | Type | Summary |
 |----|------|---------|
+| F-023 | Feature | **Product attributes** — merchant-defined label/value specs on product pages (product editor → storefront) |
 | F-022 | Feature | **Discount codes** — percent or fixed amount off at checkout; admin CRUD |
 | F-021 | Feature | **Free products** — price `0` skips payment and delivers immediately |
 | F-020 | Feature | **Multiple files per product** — primary + additional downloadable files |

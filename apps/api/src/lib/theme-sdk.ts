@@ -19,6 +19,7 @@ const toThemeProduct = (product: ReturnType<typeof serializeProduct>): ThemeProd
   summary: product.summary,
   description: product.description,
   tags: product.tags,
+  attributes: product.attributes || [],
   priceCents: product.priceCents,
   price: product.price,
   currency: product.currency,

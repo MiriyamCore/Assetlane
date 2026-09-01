@@ -6,6 +6,7 @@ import prisma from '../lib/prisma';
 import { getSettingsMap } from '../lib/settings';
 import { getAbsoluteStoragePath, inferImageMimeType, sanitizeFilename } from '../lib/storage';
 import { serializeProduct } from '../lib/serializers';
+import { parseProductAttributes } from '../lib/product-attributes';
 
 const toSlug = (value: string) =>
   sanitizeFilename(value)
@@ -19,6 +20,7 @@ const productSelection = {
   summary: true,
   description: true,
   tags: true,
+  attributes: true,
   priceCents: true,
   currency: true,
   status: true,
@@ -35,6 +37,7 @@ const productSelection = {
     select: {
       id: true,
       fileName: true,
+      label: true,
       sortOrder: true,
     },
   },
@@ -81,6 +84,43 @@ const persistDigitalUploads = async (productId: string, uploads: Express.Multer.
       })),
     });
   }
+};
+
+const parseFileLabels = (value: string | undefined) => {
+  if (!value?.trim()) {
+    return {} as Record<string, string>;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .filter(([, label]) => typeof label === 'string' && label.trim())
+        .map(([fileId, label]) => [fileId, (label as string).trim()]),
+    );
+  } catch {
+    return {};
+  }
+};
+
+const applyFileLabels = async (productId: string, fileLabels: Record<string, string>) => {
+  const entries = Object.entries(fileLabels);
+  if (entries.length === 0) {
+    return;
+  }
+
+  await Promise.all(
+    entries.map(([fileId, label]) => {
+      if (fileId === 'primary') {
+        return Promise.resolve();
+      }
+
+      return prisma.productFile.updateMany({
+        where: { id: fileId, productId },
+        data: { label },
+      });
+    }),
+  );
 };
 
 const parseGalleryPaths = (value: unknown) => {
@@ -201,6 +241,8 @@ export const createProduct = async (req: Request, res: Response) => {
       changelog,
       seoTitle,
       metaDescription,
+      attributes,
+      fileLabels,
     } = req.body as Record<string, string | undefined>;
 
     if (!title || !summary || !description || !priceCents) {
@@ -224,6 +266,7 @@ export const createProduct = async (req: Request, res: Response) => {
         summary: summary.trim(),
         description: description.trim(),
         tags: parseTags(tags),
+        attributes: parseProductAttributes(attributes),
         priceCents: parsedPriceCents,
         currency: storeCurrency,
         status: normalizedStatus,
@@ -250,6 +293,8 @@ export const createProduct = async (req: Request, res: Response) => {
         })),
       });
     }
+
+    await applyFileLabels(product.id, parseFileLabels(fileLabels));
 
     const hydrated = await prisma.product.findUnique({
       where: { id: product.id },
@@ -288,6 +333,8 @@ export const updateProduct = async (req: Request, res: Response) => {
       changelog,
       seoTitle,
       metaDescription,
+      attributes,
+      fileLabels,
     } = req.body as Record<string, string | undefined>;
 
     const settings = await getSettingsMap();
@@ -299,6 +346,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       summary: summary?.trim() || existing.summary,
       description: description?.trim() || existing.description,
       tags: tags ? parseTags(tags) : parseStoredTags(existing.tags),
+      attributes: attributes !== undefined ? parseProductAttributes(attributes) : parseProductAttributes(existing.attributes),
       currency: storeCurrency,
       status: nextStatus,
       version: version?.trim() || null,
@@ -348,7 +396,14 @@ export const updateProduct = async (req: Request, res: Response) => {
       select: productSelection,
     });
 
-    return res.json(serializeProduct(updated));
+    await applyFileLabels(id, parseFileLabels(fileLabels));
+
+    const hydrated = await prisma.product.findUnique({
+      where: { id },
+      select: productSelection,
+    });
+
+    return res.json(serializeProduct(hydrated || updated));
   } catch (error) {
     console.error('updateProduct error', error);
     return res.status(500).json({ message: 'Unable to update product.' });

@@ -81,6 +81,7 @@ export type Product = {
   summary: string;
   description: string;
   tags: string[];
+  attributes: ProductAttribute[];
   priceCents: number;
   price: number;
   currency: string;
@@ -103,7 +104,13 @@ export type PaymentMethod = 'stripe' | 'bkash' | 'free';
 export type ProductFile = {
   id: string;
   fileName: string;
+  label?: string | null;
   sortOrder: number;
+};
+
+export type ProductAttribute = {
+  label: string;
+  value: string;
 };
 
 export type Purchase = {
@@ -197,6 +204,7 @@ export type ProductFormState = {
   changelog: string;
   seoTitle: string;
   metaDescription: string;
+  attributes: ProductAttribute[];
   featuredImage: File | null;
   galleryImages: File[];
   digitalFile: File | null;

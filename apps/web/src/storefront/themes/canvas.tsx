@@ -11,6 +11,7 @@ import { ErrorPanel, InlineError, SuccessPanel } from '../../components/ui/State
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
 import { CheckoutExtras } from '../../components/storefront/CheckoutExtras';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
+import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { DownloadFileList } from '../../components/storefront/DownloadFileList';
 import { formatMoney } from '../../lib/format';
 import type {
@@ -153,6 +154,8 @@ function CanvasProductPage({
       <section className="canvas-block">
         <SafeMarkdown content={product.description} />
       </section>
+
+      <ProductSpecsSection attributes={product.attributes || []} />
 
       <aside className="canvas-checkout">
         {checkoutExtras ? <CheckoutExtras {...checkoutExtras} /> : null}

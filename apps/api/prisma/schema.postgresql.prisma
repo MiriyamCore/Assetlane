@@ -34,6 +34,7 @@ model Product {
   summary           String
   description       String
   tags              Json?
+  attributes        Json?
   priceCents        Int
   currency          String
   status            ProductStatus @default(draft)
@@ -58,6 +59,7 @@ model ProductFile {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   filePath  String
   fileName  String
+  label     String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 }

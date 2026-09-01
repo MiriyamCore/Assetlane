@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, LoaderCircle, Save } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MarkdownField } from '../../components/admin/MarkdownField';
+import { ProductAttributesEditor } from '../../components/admin/ProductAttributesEditor';
 import { apiFetch } from '../../lib/api';
 import { STORE_CURRENCY_LABELS, normalizeStoreCurrency } from '../../lib/currency';
 import { emptyProductForm, parseTagsInput, productToFormState } from '../../lib/product-form';
@@ -82,6 +83,7 @@ export function ProductEditorPage({
       formData.append('changelog', form.changelog);
       formData.append('seoTitle', form.seoTitle);
       formData.append('metaDescription', form.metaDescription);
+      formData.append('attributes', JSON.stringify(form.attributes.filter((item) => item.label.trim() && item.value.trim())));
 
       if (form.featuredImage) formData.append('featuredImage', form.featuredImage);
       form.galleryImages.forEach((image) => formData.append('galleryImages', image));
@@ -167,6 +169,10 @@ export function ProductEditorPage({
               Changelog
               <textarea value={form.changelog} onChange={(event) => setForm({ ...form, changelog: event.target.value })} rows={5} />
             </label>
+            <ProductAttributesEditor
+              attributes={form.attributes}
+              onChange={(attributes) => setForm({ ...form, attributes })}
+            />
           </div>
         );
 
@@ -231,6 +237,9 @@ export function ProductEditorPage({
               <span>{form.summary || 'No summary yet'}</span>
               <span>{parseTagsInput(form.tags).length ? parseTagsInput(form.tags).join(', ') : 'No tags added'}</span>
               <span>{form.priceCents ? `${Number(form.priceCents) / 100} ${storeCurrency}` : 'Price not set'}</span>
+              {form.attributes.filter((item) => item.label && item.value).length ? (
+                <span>{form.attributes.filter((item) => item.label && item.value).length} custom attribute(s)</span>
+              ) : null}
             </div>
             {mode === 'edit' && product?.slug ? (
               <div className="settings-note-card embed-snippet-block">

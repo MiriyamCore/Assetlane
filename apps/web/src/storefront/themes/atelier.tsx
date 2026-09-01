@@ -9,6 +9,7 @@ import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedPr
 import { ErrorPanel, InlineError, LoadingPanel, SuccessPanel } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
+import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { API_ROOT } from '../../lib/api';
 import { formatMoney } from '../../lib/format';
 import type {
@@ -134,6 +135,7 @@ function AtelierProductPage({
             <h3>Description</h3>
             <SafeMarkdown content={product.description} />
           </div>
+          <ProductSpecsSection attributes={product.attributes || []} />
           {product.changelog ? (
             <div className="rich-panel">
               <h3>Changelog</h3>
