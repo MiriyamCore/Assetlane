@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
+import { useTranslation } from '../../i18n/LocaleProvider';
 
 export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   tone = 'danger',
   busy = false,
   onConfirm,
@@ -21,6 +22,10 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel || t('common.confirm');
+  const resolvedCancelLabel = cancelLabel || t('common.cancel');
+
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -53,7 +58,7 @@ export function ConfirmDialog({
         <p>{message}</p>
         <div className="confirm-dialog-actions">
           <button className="secondary-button" disabled={busy} type="button" onClick={onCancel}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             className={tone === 'danger' ? 'primary-button danger-button' : 'primary-button'}
@@ -61,7 +66,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

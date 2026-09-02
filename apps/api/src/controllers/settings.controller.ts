@@ -55,6 +55,7 @@ const publicSettingKeys = [
   'socialInstagram',
   'socialYoutube',
   'showPublicAdminLinks',
+  'storeLocale',
   'storefrontTheme',
 ] as const;
 

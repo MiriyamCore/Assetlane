@@ -55,6 +55,7 @@ export type PublicSettings = {
   socialInstagram: string;
   socialYoutube: string;
   showPublicAdminLinks: string;
+  storeLocale: string;
   storefrontTheme: ThemeOption;
   storefrontThemeBase: ThemeOption;
   storefrontThemeStylesheetUrl: string;

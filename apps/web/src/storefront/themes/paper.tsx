@@ -8,10 +8,13 @@ import { CatalogSection } from '../../components/storefront/CatalogSection';
 import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedProductSpotlight';
 import { InlineError } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
+import { CheckoutCustomerFields, checkoutSubmitLabel } from '../../components/storefront/CheckoutCustomerFields';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
 import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { API_ROOT } from '../../lib/api';
+import { useCheckoutSuccessCopy } from '../../lib/checkout-success';
 import { formatMoney } from '../../lib/format';
+import { useTranslation } from '../../i18n/LocaleProvider';
 import type {
   CancelThemeProps,
   DownloadThemeProps,
@@ -87,6 +90,8 @@ function PaperProductPage({
   onCustomerNameChange,
   onCheckout,
 }: ProductThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container detail-shell detail-shell-paper">
       <section className="detail-main paper-detail-main">
@@ -135,27 +140,29 @@ function PaperProductPage({
           <div className="paper-note-row">
             <div className="paper-note">
               <ReceiptText size={16} />
-              <span>Secure hosted checkout</span>
+              <span>{t('checkout.secureCheckoutNote')}</span>
             </div>
             <div className="paper-note">
               <LockKeyhole size={16} />
               <span>
-                {settings.downloadLimit} downloads / {settings.downloadExpiryDays} days
+                {t('checkout.supportMeta', {
+                  email: settings.supportEmail,
+                  limit: settings.downloadLimit,
+                  days: settings.downloadExpiryDays,
+                })}
               </span>
             </div>
           </div>
           <form className="checkout-form" onSubmit={onCheckout}>
             <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
-            <label>
-              Reader name
-              <input value={customerName} onChange={(event) => onCustomerNameChange(event.target.value)} placeholder="Optional" />
-            </label>
-            <label>
-              Delivery email
-              <input required type="email" value={customerEmail} onChange={(event) => onCustomerEmailChange(event.target.value)} placeholder="you@example.com" />
-            </label>
+            <CheckoutCustomerFields
+              customerEmail={customerEmail}
+              customerName={customerName}
+              onCustomerEmailChange={onCustomerEmailChange}
+              onCustomerNameChange={onCustomerNameChange}
+            />
             <button className="primary-button" disabled={submitting} type="submit">
-              <span>{submitting ? 'Opening checkout' : 'Continue to payment'}</span>
+              <span>{checkoutSubmitLabel(t, submitting)}</span>
               <ArrowRight size={16} />
             </button>
           </form>
@@ -175,21 +182,22 @@ function PaperProductPage({
 }
 
 function PaperSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
+  const { t } = useTranslation();
   const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
   const pending = receiptLoading || receipt?.status === 'pending';
+  const copy = useCheckoutSuccessCopy({
+    supportEmail: settings.supportEmail,
+    productTitle: receipt?.productTitle,
+    downloadUrl,
+    pending,
+  });
 
   return (
     <div className="container narrow-shell">
       <section className="download-panel download-panel-paper">
-        <span className="eyebrow">Payment received</span>
-        <h1>{downloadUrl ? 'Your download is ready.' : pending ? 'Confirming payment…' : 'Your receipt is complete.'}</h1>
-        <p>
-          {downloadUrl
-            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also sent a secure link from ${settings.supportEmail}.`
-            : pending
-              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
-              : `The download link will arrive at your inbox from ${settings.supportEmail} once payment is confirmed.`}
-        </p>
+        <span className="eyebrow">{t('checkout.paymentCompleted')}</span>
+        <h1>{copy.title}</h1>
+        <p>{copy.message}</p>
         <div className="paper-stat-row">
           <div>
             <strong>Store</strong>
@@ -204,7 +212,7 @@ function PaperSuccessPage({ settings, orderReference, receipt, receiptLoading }:
         </div>
         {downloadUrl ? (
           <a className="primary-link" href={downloadUrl}>
-            Open secure download
+            {t('common.openSecureDownload')}
           </a>
         ) : null}
       </section>
@@ -213,15 +221,17 @@ function PaperSuccessPage({ settings, orderReference, receipt, receiptLoading }:
 }
 
 function PaperCancelPage({ productSlug }: CancelThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container narrow-shell">
       <section className="download-panel download-panel-paper">
-        <span className="eyebrow">Checkout paused</span>
-        <h1>No payment was captured.</h1>
-        <p>You can return to the product page and continue whenever you are ready.</p>
+        <span className="eyebrow">{t('checkout.checkoutCanceled')}</span>
+        <h1>{t('checkout.checkoutCanceled')}</h1>
+        <p>{t('checkout.cancelMessage')}</p>
         {productSlug ? (
           <Link className="secondary-link" to={`/product/${productSlug}`}>
-            Return to product
+            {t('checkout.returnToProduct')}
           </Link>
         ) : null}
       </section>

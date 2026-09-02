@@ -1689,6 +1689,37 @@
   margin-bottom: 10px;
 }
 
+.language-switcher {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.language-switcher-compact {
+  display: inline-flex;
+  align-items: center;
+}
+
+.language-switcher select {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+}
+
+.admin-sidebar-footer .language-switcher {
+  padding: 0 4px 8px;
+}
+
+.admin-auth-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  width: min(100%, 420px);
+  margin: 0 auto 12px;
+}
+
 .confirm-dialog-backdrop {
   position: fixed;
   inset: 0;

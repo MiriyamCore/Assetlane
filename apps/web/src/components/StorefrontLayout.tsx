@@ -7,6 +7,7 @@ import { SocialLinks } from './storefront/SocialLinks';
 import { resolveStoreThemeBase } from '../lib/storefront-theme';
 import { defaultSettings } from '../lib/product-form';
 import { isTruthySetting } from '../lib/storefront-content';
+import { useTranslation } from '../i18n/LocaleProvider';
 import { defaultStoreThemeId } from '../storefront/catalog';
 import type { PublicSettings } from '../types/store';
 
@@ -17,6 +18,7 @@ type StorefrontLayoutProps = {
 };
 
 export function StorefrontLayout({ settings, embed = false, children }: StorefrontLayoutProps) {
+  const { t } = useTranslation();
   const themeBase = resolveStoreThemeBase(settings);
   const themeId = settings.storefrontTheme || defaultStoreThemeId;
   const typography = useMemo(() => resolveTypography(settings), [settings]);
@@ -116,12 +118,12 @@ export function StorefrontLayout({ settings, embed = false, children }: Storefro
               <a href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a>
               {settings.privacyUrl ? (
                 <a href={settings.privacyUrl} rel="noreferrer" target="_blank">
-                  Privacy
+                  {t('common.privacy')}
                 </a>
               ) : null}
               {settings.termsUrl ? (
                 <a href={settings.termsUrl} rel="noreferrer" target="_blank">
-                  Terms
+                  {t('common.terms')}
                 </a>
               ) : null}
               <SocialLinks className="social-links footer-social-links" settings={settings} />

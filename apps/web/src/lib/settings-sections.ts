@@ -29,7 +29,7 @@ export const settingsSectionFields: Record<SettingsSectionId, string[]> = {
     'showHeroHighlights',
   ],
   themes: [],
-  store: ['storeName', 'storeUrl', 'storeDescription', 'supportEmail', 'storeMode', 'showPublicAdminLinks'],
+  store: ['storeName', 'storeUrl', 'storeDescription', 'supportEmail', 'storeMode', 'showPublicAdminLinks', 'storeLocale'],
   payments: [
     'paymentProviderMode',
     'stripeSecretKey',

@@ -10,6 +10,7 @@ Living log of product improvements, fixes, and planned work. Update when shippin
 
 | ID | Type | Summary |
 |----|------|---------|
+| F-028 | i18n | **English + Bangla** — storefront and admin UI with language switcher; default English |
 | F-024 | Feature | **Team roles** — owner/admin/viewer accounts with team management in Settings → Team |
 | F-025 | UX | **Per-section settings save** — save only the active settings section |
 | F-026 | UX | **Theme uninstall dialog** — confirmation modal with active-theme warning |
@@ -66,7 +67,6 @@ _None._
 | L-002 | Feature | Built-in email provider (Resend, Postmark) |
 | L-003 | Feature | PayPal checkout |
 | L-004 | Platform | Theme marketplace |
-| L-005 | i18n | Multi-language admin and storefront |
 
 ---
 

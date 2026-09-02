@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertCircle, Check, LoaderCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../i18n/LocaleProvider';
 
 export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
@@ -50,9 +51,11 @@ export function SuccessInline({ message }: { message: string }) {
 }
 
 export function EmptyPanel({ title, message }: { title: string; message: string }) {
+  const { t } = useTranslation();
+
   return (
     <div className="panel centered-panel">
-      <span className="eyebrow">Nothing here yet</span>
+      <span className="eyebrow">{t('common.nothingYet')}</span>
       <h3>{title}</h3>
       <p>{message}</p>
     </div>
@@ -60,7 +63,7 @@ export function EmptyPanel({ title, message }: { title: string; message: string 
 }
 
 export function ErrorPanel({
-  title = 'Something went wrong',
+  title,
   message,
   action,
 }: {
@@ -68,15 +71,17 @@ export function ErrorPanel({
   message: string;
   action?: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="container narrow-shell">
       <div className="panel centered-panel danger-panel">
         <AlertCircle size={20} />
-        <h2>{title}</h2>
+        <h2>{title || t('common.somethingWrong')}</h2>
         <p>{message}</p>
         {action || (
           <Link className="secondary-link" to="/">
-            Return home
+            {t('common.returnHome')}
           </Link>
         )}
       </div>
@@ -97,20 +102,22 @@ export function SuccessPanel({
   downloadUrl?: string;
   pending?: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="panel centered-panel success-panel">
       <Check size={22} />
       <h2>{title}</h2>
       <p>{message}</p>
       {detail ? <span className="support-chip">{detail}</span> : null}
-      {pending ? <span className="support-chip">Confirming payment…</span> : null}
+      {pending ? <span className="support-chip">{t('common.confirmingPayment')}</span> : null}
       {downloadUrl ? (
         <a className="primary-link" href={downloadUrl}>
-          Open secure download
+          {t('common.openSecureDownload')}
         </a>
       ) : null}
       <Link className={downloadUrl ? 'secondary-link' : 'primary-link'} to="/">
-        Back to storefront
+        {t('common.backToStorefront')}
       </Link>
     </div>
   );

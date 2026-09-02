@@ -63,6 +63,7 @@ const defaultSettings = {
   socialInstagram: '',
   socialYoutube: '',
   showPublicAdminLinks: 'false',
+  storeLocale: 'en',
   storefrontTheme: 'canvas',
   smtpHost: '',
   smtpPort: '587',

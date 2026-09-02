@@ -98,4 +98,5 @@ export const settingsFieldHelp: Partial<Record<string, string>> = {
   bodyFontPreset: 'Applies to storefront body text. Theme default keeps each theme’s built-in pairing.',
   headingFontPreset: 'Applies to headlines and display text. Match body uses the body font selection.',
   defaultCurrency: 'Use BDT when accepting bKash. Stripe supports all listed currencies.',
+  storeLocale: 'Default language for new storefront visitors before they choose English or Bangla.',
 };

@@ -8,10 +8,13 @@ import { CatalogSection } from '../../components/storefront/CatalogSection';
 import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedProductSpotlight';
 import { ErrorPanel, InlineError, LoadingPanel, SuccessPanel } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
+import { CheckoutCustomerFields, checkoutSubmitLabel } from '../../components/storefront/CheckoutCustomerFields';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
 import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { API_ROOT } from '../../lib/api';
+import { useCheckoutSuccessCopy } from '../../lib/checkout-success';
 import { formatMoney } from '../../lib/format';
+import { useTranslation } from '../../i18n/LocaleProvider';
 import type {
   CancelThemeProps,
   DownloadThemeProps,
@@ -105,6 +108,8 @@ function AtelierProductPage({
   onCustomerNameChange,
   onCheckout,
 }: ProductThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container detail-shell">
       <div className="detail-main">
@@ -153,38 +158,39 @@ function AtelierProductPage({
       </div>
 
       <aside className="checkout-card">
-        <div className="price-label">Price</div>
+        <div className="price-label">{t('checkout.price')}</div>
         <div className="checkout-price">{formatMoney(product.price, product.currency)}</div>
-        <div className="checkout-note">Secure checkout with expiring download links after purchase.</div>
+        <div className="checkout-note">{t('checkout.secureCheckoutNote')}</div>
         <form className="checkout-form" onSubmit={onCheckout}>
           <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
-          <label>
-            Name
-            <input value={customerName} onChange={(event) => onCustomerNameChange(event.target.value)} placeholder="Optional" />
-          </label>
-          <label>
-            Email
-            <input required type="email" value={customerEmail} onChange={(event) => onCustomerEmailChange(event.target.value)} placeholder="you@example.com" />
-          </label>
+          <CheckoutCustomerFields
+            customerEmail={customerEmail}
+            customerName={customerName}
+            onCustomerEmailChange={onCustomerEmailChange}
+            onCustomerNameChange={onCustomerNameChange}
+          />
           <button className="primary-button" disabled={submitting} type="submit">
             {submitting ? <Download className="spin" size={16} /> : <CreditCard size={16} />}
-            <span>{submitting ? 'Redirecting' : 'Checkout'}</span>
+            <span>{checkoutSubmitLabel(t, submitting)}</span>
           </button>
         </form>
         {error ? <InlineError message={error} /> : null}
         <div className="detail-meta">
           <div>
-            <strong>Version</strong>
-            <span>{product.version || 'Current release'}</span>
+            <strong>{t('checkout.version')}</strong>
+            <span>{product.version || t('checkout.currentRelease')}</span>
           </div>
           <div>
-            <strong>Support</strong>
+            <strong>{t('common.support')}</strong>
             <span>{settings.supportEmail}</span>
           </div>
           <div>
-            <strong>Download rules</strong>
+            <strong>{t('checkout.downloadRules')}</strong>
             <span>
-              {settings.downloadLimit} downloads within {settings.downloadExpiryDays} days
+              {t('checkout.downloadsWithinDays', {
+                limit: settings.downloadLimit,
+                days: settings.downloadExpiryDays,
+              })}
             </span>
           </div>
         </div>
@@ -196,18 +202,18 @@ function AtelierProductPage({
 function AtelierSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
   const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
   const pending = receiptLoading || receipt?.status === 'pending';
+  const copy = useCheckoutSuccessCopy({
+    supportEmail: settings.supportEmail,
+    productTitle: receipt?.productTitle,
+    downloadUrl,
+    pending,
+  });
 
   return (
     <div className="container narrow-shell">
       <SuccessPanel
-        title="Payment completed"
-        message={
-          downloadUrl
-            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also emailed a secure download link from ${settings.supportEmail}.`
-            : pending
-              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
-              : `Your purchase was captured successfully. We'll email a secure download link to you from ${settings.supportEmail}.`
-        }
+        title={copy.title}
+        message={copy.message}
         {...(orderReference ? { detail: `Order reference: ${orderReference}` } : {})}
         {...(downloadUrl ? { downloadUrl } : {})}
         {...(pending ? { pending } : {})}
@@ -217,15 +223,17 @@ function AtelierSuccessPage({ settings, orderReference, receipt, receiptLoading 
 }
 
 function AtelierCancelPage({ productSlug }: CancelThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container narrow-shell">
       <ErrorPanel
-        title="Checkout canceled"
-        message="Your payment was not completed. You can return to the product page and try again whenever you’re ready."
+        title={t('checkout.checkoutCanceled')}
+        message={t('checkout.cancelMessage')}
         action={
           productSlug ? (
             <Link className="secondary-link" to={`/product/${productSlug}`}>
-              Return to product
+              {t('checkout.returnToProduct')}
             </Link>
           ) : undefined
         }

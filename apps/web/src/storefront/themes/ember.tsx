@@ -8,10 +8,13 @@ import { CatalogSection } from '../../components/storefront/CatalogSection';
 import { FeaturedProductSpotlight } from '../../components/storefront/FeaturedProductSpotlight';
 import { InlineError } from '../../components/ui/States';
 import { CheckoutPaymentMethods } from '../../components/storefront/CheckoutPaymentMethods';
+import { CheckoutCustomerFields, checkoutSubmitLabel } from '../../components/storefront/CheckoutCustomerFields';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
 import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { API_ROOT } from '../../lib/api';
+import { useCheckoutSuccessCopy } from '../../lib/checkout-success';
 import { formatMoney } from '../../lib/format';
+import { useTranslation } from '../../i18n/LocaleProvider';
 import type {
   CancelThemeProps,
   DownloadThemeProps,
@@ -100,6 +103,8 @@ function EmberProductPage({
   onCustomerNameChange,
   onCheckout,
 }: ProductThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container detail-shell detail-shell-ember">
       <section className="ember-product-hero">
@@ -174,17 +179,15 @@ function EmberProductPage({
           </div>
           <form className="checkout-form" onSubmit={onCheckout}>
             <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
-            <label>
-              Buyer name
-              <input value={customerName} onChange={(event) => onCustomerNameChange(event.target.value)} placeholder="Optional" />
-            </label>
-            <label>
-              Receipt email
-              <input required type="email" value={customerEmail} onChange={(event) => onCustomerEmailChange(event.target.value)} placeholder="you@example.com" />
-            </label>
+            <CheckoutCustomerFields
+              customerEmail={customerEmail}
+              customerName={customerName}
+              onCustomerEmailChange={onCustomerEmailChange}
+              onCustomerNameChange={onCustomerNameChange}
+            />
             <button className="primary-button" disabled={submitting} type="submit">
               {submitting ? <Download className="spin" size={16} /> : <CreditCard size={16} />}
-              <span>{submitting ? 'Preparing checkout' : 'Buy now'}</span>
+              <span>{checkoutSubmitLabel(t, submitting)}</span>
             </button>
           </form>
           {error ? <InlineError message={error} /> : null}
@@ -195,21 +198,22 @@ function EmberProductPage({
 }
 
 function EmberSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
+  const { t } = useTranslation();
   const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
   const pending = receiptLoading || receipt?.status === 'pending';
+  const copy = useCheckoutSuccessCopy({
+    supportEmail: settings.supportEmail,
+    productTitle: receipt?.productTitle,
+    downloadUrl,
+    pending,
+  });
 
   return (
     <div className="container narrow-shell">
       <section className="download-panel download-panel-ember">
-        <span className="eyebrow">Order confirmed</span>
-        <h1>{downloadUrl ? 'Your download is ready.' : pending ? 'Confirming payment…' : 'Your purchase is secured.'}</h1>
-        <p>
-          {downloadUrl
-            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also sent a secure link from ${settings.supportEmail}.`
-            : pending
-              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
-              : `We're sending the download link from ${settings.supportEmail}. Keep the confirmation email for access and support.`}
-        </p>
+        <span className="eyebrow">{t('checkout.paymentCompleted')}</span>
+        <h1>{copy.title}</h1>
+        <p>{copy.message}</p>
         <div className="paper-stat-row">
           <div>
             <strong>Store</strong>
@@ -224,7 +228,7 @@ function EmberSuccessPage({ settings, orderReference, receipt, receiptLoading }:
         </div>
         {downloadUrl ? (
           <a className="primary-link" href={downloadUrl}>
-            Open secure download
+            {t('common.openSecureDownload')}
           </a>
         ) : null}
       </section>
@@ -233,15 +237,17 @@ function EmberSuccessPage({ settings, orderReference, receipt, receiptLoading }:
 }
 
 function EmberCancelPage({ productSlug }: CancelThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="container narrow-shell">
       <section className="download-panel download-panel-ember">
-        <span className="eyebrow">Checkout canceled</span>
-        <h1>The purchase flow was interrupted.</h1>
-        <p>No charge went through. You can jump back in whenever you are ready.</p>
+        <span className="eyebrow">{t('checkout.checkoutCanceled')}</span>
+        <h1>{t('checkout.checkoutCanceled')}</h1>
+        <p>{t('checkout.cancelMessage')}</p>
         {productSlug ? (
           <Link className="secondary-link" to={`/product/${productSlug}`}>
-            Return to product
+            {t('checkout.returnToProduct')}
           </Link>
         ) : null}
       </section>

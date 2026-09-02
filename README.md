@@ -54,6 +54,7 @@ Configure Stripe, bKash, and SMTP in **Admin → Settings** after setup. For loc
 - First-boot setup wizard
 - Single-admin authentication (HTTP-only cookies, bcrypt passwords)
 - Team accounts with owner, admin, and viewer roles (**Settings → Team**)
+- English and Bangla (Bangladesh) UI — language switcher on storefront and admin; default English
 - Product CRUD with draft, published, and archived states
 - Custom product attributes (label/value specs shown on product pages)
 - Private file storage for digital products and product images

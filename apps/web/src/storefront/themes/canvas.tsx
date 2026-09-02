@@ -13,7 +13,10 @@ import { CheckoutExtras } from '../../components/storefront/CheckoutExtras';
 import { SafeMarkdown } from '../../components/ui/SafeMarkdown';
 import { ProductSpecsSection } from '../../components/storefront/ProductSpecsSection';
 import { DownloadFileList } from '../../components/storefront/DownloadFileList';
+import { CheckoutCustomerFields, checkoutSubmitLabel } from '../../components/storefront/CheckoutCustomerFields';
+import { useCheckoutSuccessCopy } from '../../lib/checkout-success';
 import { formatMoney } from '../../lib/format';
+import { useTranslation } from '../../i18n/LocaleProvider';
 import type {
   CancelThemeProps,
   DownloadThemeProps,
@@ -139,11 +142,12 @@ function CanvasProductPage({
   const product = useProduct();
   const site = useProductSite();
   const urls = useProductUrls();
+  const { t } = useTranslation();
 
   return (
     <div className="canvas-page canvas-product-page">
       <Link className="secondary-link" to="/">
-        ← Back to store
+        ← {t('checkout.backToStore')}
       </Link>
       <header className="canvas-hero">
         <h1>{product.title}</h1>
@@ -163,32 +167,31 @@ function CanvasProductPage({
           {paymentMethods.length > 0 ? (
             <CheckoutPaymentMethods methods={paymentMethods} onChange={onPaymentMethodChange} value={paymentMethod} />
           ) : null}
-          <label>
-            Name
-            <input value={customerName} onChange={(event) => onCustomerNameChange(event.target.value)} placeholder="Optional" />
-          </label>
-          <label>
-            Email
-            <input required type="email" value={customerEmail} onChange={(event) => onCustomerEmailChange(event.target.value)} placeholder="you@example.com" />
-          </label>
+          <CheckoutCustomerFields
+            customerEmail={customerEmail}
+            customerName={customerName}
+            onCustomerEmailChange={onCustomerEmailChange}
+            onCustomerNameChange={onCustomerNameChange}
+          />
           <button className="primary-button" disabled={submitting} type="submit">
             {submitting ? <Download className="spin" size={16} /> : <CreditCard size={16} />}
             <span>
-              {submitting
-                ? checkoutExtras?.isFreeProduct || checkoutExtras?.finalPriceCents === 0
-                  ? 'Processing'
-                  : 'Redirecting'
-                : checkoutExtras?.isFreeProduct || checkoutExtras?.finalPriceCents === 0
-                  ? 'Get free download'
-                  : 'Checkout'}
+              {checkoutSubmitLabel(t, submitting, {
+                isFreeProduct: checkoutExtras?.isFreeProduct,
+                finalPriceCents: checkoutExtras?.finalPriceCents,
+              })}
             </span>
           </button>
         </form>
         {error ? <InlineError message={error} /> : null}
         <p className="canvas-meta">
-          Support: {site.supportEmail} · {site.downloadLimit} downloads / {site.downloadExpiryDays} days
+          {t('checkout.supportMeta', {
+            email: site.supportEmail,
+            limit: site.downloadLimit,
+            days: site.downloadExpiryDays,
+          })}
         </p>
-        <p className="canvas-meta">Product URL: {urls.product}</p>
+        <p className="canvas-meta">{t('checkout.productUrl', { url: urls.product })}</p>
       </aside>
     </div>
   );
@@ -197,18 +200,18 @@ function CanvasProductPage({
 function CanvasSuccessPage({ settings, orderReference, receipt, receiptLoading }: SuccessThemeProps) {
   const downloadUrl = receipt?.status === 'paid' ? receipt.downloadUrl : undefined;
   const pending = receiptLoading || receipt?.status === 'pending';
+  const copy = useCheckoutSuccessCopy({
+    supportEmail: settings.supportEmail,
+    productTitle: receipt?.productTitle,
+    downloadUrl,
+    pending,
+  });
 
   return (
     <div className="canvas-page">
       <SuccessPanel
-        title="Payment completed"
-        message={
-          downloadUrl
-            ? `Your purchase of ${receipt?.productTitle || 'your product'} is ready. We also emailed a secure download link from ${settings.supportEmail}.`
-            : pending
-              ? `We are confirming your payment. A download link will appear here and arrive by email from ${settings.supportEmail}.`
-              : `Your purchase was captured successfully. We'll email a secure download link from ${settings.supportEmail}.`
-        }
+        title={copy.title}
+        message={copy.message}
         {...(orderReference ? { detail: `Order reference: ${orderReference}` } : {})}
         {...(downloadUrl ? { downloadUrl } : {})}
         {...(pending ? { pending } : {})}
@@ -218,15 +221,17 @@ function CanvasSuccessPage({ settings, orderReference, receipt, receiptLoading }
 }
 
 function CanvasCancelPage({ productSlug }: CancelThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="canvas-page">
       <ErrorPanel
-        title="Checkout canceled"
-        message="Your payment was not completed."
+        title={t('checkout.checkoutCanceled')}
+        message={t('checkout.cancelMessage')}
         action={
           productSlug ? (
             <Link className="secondary-link" to={`/product/${productSlug}`}>
-              Return to product
+              {t('checkout.returnToProduct')}
             </Link>
           ) : undefined
         }
@@ -236,10 +241,16 @@ function CanvasCancelPage({ productSlug }: CancelThemeProps) {
 }
 
 function CanvasDownloadPage({ payload, token }: DownloadThemeProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="canvas-page">
       <h1>{payload.productTitle}</h1>
-      {payload.canDownload ? <DownloadFileList payload={payload} token={token} /> : <InlineError message="This download link is not currently available." />}
+      {payload.canDownload ? (
+        <DownloadFileList payload={payload} token={token} />
+      ) : (
+        <InlineError message={t('checkout.downloadUnavailable')} />
+      )}
     </div>
   );
 }

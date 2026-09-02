@@ -15,6 +15,7 @@ import { LibraryPage } from './pages/public/LibraryPage';
 import { ProductPage } from './pages/public/ProductPage';
 import { SuccessPage } from './pages/public/SuccessPage';
 import { SetupWizardPage } from './pages/setup/SetupWizardPage';
+import { LocaleProvider } from './i18n/LocaleProvider';
 import type { PublicSettings } from './types/store';
 
 function ProductRoute({ settings }: { settings: PublicSettings }) {
@@ -116,11 +117,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      <SetupGuard>
-        <div className="page-shell">
-          <AppRoutes onSettingsSaved={setSettings} settings={settings} />
-        </div>
-      </SetupGuard>
+      <LocaleProvider storeLocale={settings.storeLocale}>
+        <SetupGuard>
+          <div className="page-shell">
+            <AppRoutes onSettingsSaved={setSettings} settings={settings} />
+          </div>
+        </SetupGuard>
+      </LocaleProvider>
     </BrowserRouter>
   );
 }

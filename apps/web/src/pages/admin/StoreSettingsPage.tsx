@@ -594,6 +594,19 @@ export function StoreSettingsPage({
                   );
                 }
 
+                if (fieldKey === 'storeLocale') {
+                  return (
+                    <label key={fieldKey}>
+                      {fieldLabel(fieldKey)}
+                      <select value={form.storeLocale || 'en'} onChange={(event) => updateField('storeLocale', event.target.value)}>
+                        <option value="en">English</option>
+                        <option value="bn">বাংলা (Bangladesh)</option>
+                      </select>
+                      {settingsFieldHelp.storeLocale ? <small>{settingsFieldHelp.storeLocale}</small> : null}
+                    </label>
+                  );
+                }
+
                 return renderSettingsField(fieldKey);
               })}
             </div>

@@ -14,21 +14,24 @@ import {
 import { NavLink } from 'react-router-dom';
 import type { AuthUser, PublicSettings } from '../../types/store';
 import { PRODUCT_NAME } from '../../lib/platform';
+import { useTranslation } from '../../i18n/LocaleProvider';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 
-const pageMeta: Record<string, { title: string; description: string }> = {
-  '': { title: 'Dashboard', description: 'Revenue, orders, and store performance at a glance.' },
-  products: { title: 'Products', description: 'Manage digital products, pricing, and delivery files.' },
-  'products/new': { title: 'New product', description: 'Create a new digital product listing.' },
-  purchases: { title: 'Orders', description: 'Track purchases, delivery status, and download activity.' },
-  discounts: { title: 'Discounts', description: 'Create promotion codes for checkout.' },
-  settings: { title: 'Settings', description: 'Branding, storefront, payments, email, and distribution.' },
-};
-
-function resolvePageMeta(path: string) {
+function resolvePageMeta(path: string, t: (key: string) => string) {
   if (path.match(/^products\/[^/]+\/edit$/)) {
-    return { title: 'Edit product', description: 'Update product details, files, and publish state.' };
+    return { title: t('admin.editProduct'), description: t('admin.editProductDesc') };
   }
-  return pageMeta[path] || { title: 'Admin', description: 'Manage your digital storefront.' };
+
+  const pageMeta: Record<string, { title: string; description: string }> = {
+    '': { title: t('admin.dashboard'), description: t('admin.dashboardDesc') },
+    products: { title: t('admin.products'), description: t('admin.productsDesc') },
+    'products/new': { title: t('admin.newProduct'), description: t('admin.newProductDesc') },
+    purchases: { title: t('admin.orders'), description: t('admin.ordersDesc') },
+    discounts: { title: t('admin.discounts'), description: t('admin.discountsDesc') },
+    settings: { title: t('admin.settings'), description: t('admin.settingsDesc') },
+  };
+
+  return pageMeta[path] || { title: t('admin.adminFallback'), description: t('admin.adminFallbackDesc') };
 }
 
 export function AdminShell({
@@ -46,7 +49,8 @@ export function AdminShell({
   settings: PublicSettings;
   user: AuthUser;
 }) {
-  const meta = resolvePageMeta(adminPath);
+  const { t } = useTranslation();
+  const meta = resolvePageMeta(adminPath, t);
   const isSettings = adminPath === 'settings';
   const isEditor = adminPath === 'products/new' || /^products\/[^/]+\/edit$/.test(adminPath);
   const isFocusPage = isSettings || isEditor;
@@ -57,44 +61,45 @@ export function AdminShell({
         <aside className="admin-sidebar">
           <div className="admin-brand">
             <strong>{settings.storeName || PRODUCT_NAME}</strong>
-            <span>Seller dashboard</span>
+            <span>{t('admin.sellerDashboard')}</span>
           </div>
 
           <nav className="admin-nav">
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} end to="/admin">
               <LayoutDashboard size={15} />
-              <span>Dashboard</span>
+              <span>{t('admin.dashboard')}</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/products">
               <Package size={15} />
-              <span>Products</span>
+              <span>{t('admin.products')}</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/products/new">
               <Plus size={15} />
-              <span>New product</span>
+              <span>{t('admin.newProduct')}</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/purchases">
               <ShoppingBag size={15} />
-              <span>Orders</span>
+              <span>{t('admin.orders')}</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/discounts">
               <Tag size={15} />
-              <span>Discounts</span>
+              <span>{t('admin.discounts')}</span>
             </NavLink>
             <NavLink className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')} to="/admin/settings">
               <Settings size={15} />
-              <span>Settings</span>
+              <span>{t('admin.settings')}</span>
             </NavLink>
           </nav>
 
           <div className="admin-sidebar-footer">
+            <LanguageSwitcher />
             <a href="/" rel="noreferrer" target="_blank">
               <Store size={15} />
-              <span>View storefront</span>
+              <span>{t('admin.viewStorefront')}</span>
             </a>
             <button type="button" onClick={onLogout}>
               <LogOut size={15} />
-              <span>Sign out</span>
+              <span>{t('admin.signOut')}</span>
             </button>
           </div>
         </aside>
@@ -107,22 +112,23 @@ export function AdminShell({
             {!isFocusPage ? <p>{meta.description}</p> : null}
           </div>
           <div className="admin-topbar-actions">
+            <LanguageSwitcher compact />
             <span className="admin-user-chip">
               {user.email}
-              {user.role === 'viewer' ? ' · viewer' : user.role === 'owner' ? ' · owner' : ''}
+              {user.role === 'viewer' ? ` · ${t('admin.roleViewer')}` : user.role === 'owner' ? ` · ${t('admin.roleOwner')}` : ''}
             </span>
             <button className="secondary-button" type="button" onClick={onRefresh}>
               <RefreshCcw size={15} />
-              <span>Refresh</span>
+              <span>{t('common.refresh')}</span>
             </button>
             <a className="secondary-button" href="/" rel="noreferrer" target="_blank">
               <ExternalLink size={15} />
-              <span>Store</span>
+              <span>{t('admin.store')}</span>
             </a>
             {isFocusPage ? (
               <button className="secondary-button" type="button" onClick={onLogout}>
                 <LogOut size={15} />
-                <span>Sign out</span>
+                <span>{t('admin.signOut')}</span>
               </button>
             ) : null}
           </div>
